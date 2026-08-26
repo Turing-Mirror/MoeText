@@ -15,6 +15,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,17 +39,15 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import com.turingmirror.moetext.ui.theme.GlassBottomBar
+import com.turingmirror.moetext.ui.theme.GlassSegmentRow
+import com.turingmirror.moetext.ui.theme.GlassSurface
+import com.turingmirror.moetext.ui.theme.GlassSwitch
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -146,11 +145,7 @@ private fun Root(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                NavigationBarItem(tab == 0, onClick = { tab = 0 }, icon = {}, label = { Text("状态") })
-                NavigationBarItem(tab == 1, onClick = { tab = 1 }, icon = {}, label = { Text("规则") })
-                NavigationBarItem(tab == 2, onClick = { tab = 2 }, icon = {}, label = { Text("测试") })
-            }
+            GlassBottomBar(selected = tab, onSelect = { tab = it })
         }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
@@ -173,80 +168,55 @@ private fun StatusTab(
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
     ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(14.dp))
-                .padding(18.dp)
+        Column {
+            Text(
+                "喵言喵",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "MoeText by Turing Mirror",
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(Modifier.height(18.dp))
+
+        GlassSurface(
+            modifier = Modifier.fillMaxWidth().clickable { onOpenAccessibility() },
+            shape = RoundedCornerShape(14.dp)
         ) {
-            Column {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    "MoeText",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    if (enabled) "无障碍服务已开启" else "无障碍服务未开启",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (enabled) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    "聊天文本自动美化",
-                    fontSize = 13.sp,
+                    if (enabled) "关闭软件或点击前往关闭无障碍服务即可停止"
+                    else "点击前往开启无障碍服务",
+                    fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        }
-        Spacer(Modifier.height(14.dp))
-
-        PanelCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .width(10.dp)
-                        .height(10.dp)
-                        .background(
-                            color = if (enabled) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
-                            shape = RoundedCornerShape(5.dp)
-                        )
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    if (enabled) "无障碍服务已开启" else "无障碍服务未开启",
-                    fontWeight = FontWeight.Bold,
-                    color = if (enabled) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
-                )
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Button(
-            onClick = onOpenAccessibility,
-            enabled = !enabled,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text(if (enabled) "服务运行中" else "前往开启无障碍服务")
-        }
-        if (enabled) {
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "修改规则后无需重开服务，下次触发自动生效",
-                fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
 
         Spacer(Modifier.height(22.dp))
         SectionTitle("处理模式")
         Spacer(Modifier.height(8.dp))
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = !config.realtimeMode,
-                onClick = { onConfig(config.copy(realtimeMode = false)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-            ) { Text("标点触发") }
-            SegmentedButton(
-                selected = config.realtimeMode,
-                onClick = { onConfig(config.copy(realtimeMode = true)) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-            ) { Text("实时处理") }
-        }
+        GlassSegmentRow(
+            options = listOf("标点触发", "实时处理"),
+            selectedIndex = if (config.realtimeMode) 1 else 0,
+            onSelected = { idx -> onConfig(config.copy(realtimeMode = idx == 1)) },
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(Modifier.height(6.dp))
         Text(
             "标点触发：仅在句读处立即处理（推荐）\n实时处理：每输入一字立即处理",
@@ -254,18 +224,12 @@ private fun StatusTab(
         )
 
         Spacer(Modifier.height(22.dp))
-        OutlinedCard(
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.outlinedCardColors(containerColor = NotifyAmber.copy(alpha = 0.14f)),
-            border = BorderStroke(1.dp, NotifyAmber.copy(alpha = 0.45f))
-        ) {
-            Text(
-                "本工具会自动改写您发出的消息，可能违反目标应用的用户协议，存在账号被限制或封禁的风险，请自行评估后使用。MoeText 与腾讯官方无关。",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(14.dp)
-            )
-        }
+        Text(
+            "本工具会自动改写您发出的消息，可能违反目标应用的用户协议，存在账号被限制或封禁的风险，请自行评估后使用。喵言喵与腾讯官方无关。",
+            fontSize = 12.sp,
+            color = NotifyAmber,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(Modifier.height(22.dp))
         SectionTitle("社区")
@@ -321,7 +285,7 @@ private fun AboutPanel() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    "MoeText v" + UpdateChecker.currentVersionName(context),
+                    "喵言喵 v" + UpdateChecker.currentVersionName(context),
                     fontSize = 14.sp
                 )
                 Text(status, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -524,7 +488,7 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
                             fontSize = 14.sp,
                             modifier = Modifier.weight(1f)
                         )
-                        Switch(checked = rule.enabled, onCheckedChange = {
+                        GlassSwitch(checked = rule.enabled, onCheckedChange = {
                             onConfig(config.copy(customReplaces = config.customReplaces.toMutableList().apply {
                                 set(index, rule.copy(enabled = it))
                             }))
@@ -644,18 +608,12 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
 
 @Composable
 private fun PickModeRow(current: PickMode, onChange: (PickMode) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        SegmentedButton(
-            selected = current == PickMode.SEQUENTIAL,
-            onClick = { onChange(PickMode.SEQUENTIAL) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-        ) { Text("顺序轮换") }
-        SegmentedButton(
-            selected = current == PickMode.RANDOM,
-            onClick = { onChange(PickMode.RANDOM) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-        ) { Text("随机抽取") }
-    }
+    GlassSegmentRow(
+        options = listOf("顺序轮换", "随机抽取"),
+        selectedIndex = if (current == PickMode.SEQUENTIAL) 0 else 1,
+        onSelected = { idx -> onChange(if (idx == 0) PickMode.SEQUENTIAL else PickMode.RANDOM) },
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable
@@ -750,6 +708,6 @@ private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, fontSize = 15.sp, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChange)
+        GlassSwitch(checked = checked, onCheckedChange = onChange)
     }
 }
