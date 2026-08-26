@@ -1,4 +1,0 @@
-#Wed Aug 26 23:31:22 CST 2026
-base.0=/Users/kara/Code/Turing-Mirror/MoeText/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
-path.0=classes.dex
-renamed.0=classes.dex
