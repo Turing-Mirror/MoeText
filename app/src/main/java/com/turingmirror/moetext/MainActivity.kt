@@ -11,8 +11,11 @@ import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +36,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +67,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turingmirror.moetext.data.ConfigStore
+import com.turingmirror.moetext.data.PresetCodec
+import com.turingmirror.moetext.data.StylePresets
 import com.turingmirror.moetext.engine.AppConfig
 import com.turingmirror.moetext.engine.CustomReplace
 import com.turingmirror.moetext.engine.PickMode
@@ -409,9 +415,88 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         emoticons = lines(emoticonRaw).ifEmpty { AppConfig.BUILTIN_EMOTICONS }
     )
 
+    var selectedStyle by rememberSaveable { mutableStateOf(StylePresets.BUILTIN.first().name) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use {
+                    it.write(PresetCodec.toJson(merged()).toByteArray())
+                } ?: error("无法写入文件")
+                Toast.makeText(context, "风格已导出", Toast.LENGTH_SHORT).show()
+            }.onFailure {
+                Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                val text = context.contentResolver.openInputStream(uri)!!.use {
+                    it.readBytes().decodeToString()
+                }
+                PresetCodec.parse(text) ?: error("格式错误")
+            }.onSuccess { parsed ->
+                val applied = StylePresets.apply(merged(), parsed)
+                suffixRaw = applied.sentenceSuffixes.joinToString("\n")
+                tailRaw = applied.tails.joinToString("\n")
+                emoticonRaw = applied.emoticons.joinToString("\n")
+                onConfig(applied)
+                onPersist(applied)
+                selectedStyle = "自定义"
+                Toast.makeText(context, "风格已导入并保存", Toast.LENGTH_SHORT).show()
+            }.onFailure {
+                Toast.makeText(context, "导入失败：不是有效的风格文件", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    fun applyStyle(presetConfig: AppConfig, name: String) {
+        val applied = StylePresets.apply(merged(), presetConfig)
+        suffixRaw = applied.sentenceSuffixes.joinToString("\n")
+        tailRaw = applied.tails.joinToString("\n")
+        emoticonRaw = applied.emoticons.joinToString("\n")
+        onConfig(applied)
+        onPersist(applied)
+        selectedStyle = name
+        Toast.makeText(context, "已切换到「$name」", Toast.LENGTH_SHORT).show()
+    }
+
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
     ) {
+        SectionTitle("风格")
+        Spacer(Modifier.height(8.dp))
+        PanelCard {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StylePresets.BUILTIN.forEach { p ->
+                    FilterChip(
+                        selected = selectedStyle == p.name,
+                        onClick = { applyStyle(p.config, p.name) },
+                        label = { Text(p.name) }
+                    )
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = { exportLauncher.launch("moetext_style.json") }) {
+                    Text("导出当前风格", fontSize = 13.sp)
+                }
+                TextButton(onClick = { importLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) }) {
+                    Text("导入风格", fontSize = 13.sp)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
         SectionTitle("快捷替换")
         Spacer(Modifier.height(8.dp))
         PanelCard {

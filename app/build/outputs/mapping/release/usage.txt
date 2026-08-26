@@ -47,10 +47,6 @@ androidx.activity.ComponentActivity$ReportFullyDrawnExecutorImpl:
     public final boolean getOnDrawScheduled()
     public final void setCurrentRunnable(java.lang.Runnable)
     public final void setOnDrawScheduled(boolean)
-androidx.activity.ComponentActivity$activityResultRegistry$1:
-    public void onLaunch(int,androidx.activity.result.contract.ActivityResultContract,java.lang.Object,androidx.core.app.ActivityOptionsCompat)
-    private static final void onLaunch$lambda$0(androidx.activity.ComponentActivity$activityResultRegistry$1,int,androidx.activity.result.contract.ActivityResultContract$SynchronousResult)
-    private static final void onLaunch$lambda$1(androidx.activity.ComponentActivity$activityResultRegistry$1,int,android.content.IntentSender$SendIntentException)
 androidx.activity.ComponentActivity:
     private static final java.lang.String ACTIVITY_RESULT_TAG
     public void <init>(int)
@@ -63,7 +59,6 @@ androidx.activity.ComponentActivity:
     public final void addOnPictureInPictureModeChangedListener(androidx.core.util.Consumer)
     public final void addOnTrimMemoryListener(androidx.core.util.Consumer)
     public final void addOnUserLeaveHintListener(java.lang.Runnable)
-    public final androidx.activity.result.ActivityResultRegistry getActivityResultRegistry()
     public androidx.lifecycle.ViewModelProvider$Factory getDefaultViewModelProviderFactory()
     public java.lang.Object getLastCustomNonConfigurationInstance()
     public static synthetic void getOnBackPressedDispatcher$annotations()
@@ -135,24 +130,23 @@ androidx.activity.ViewTreeOnBackPressedDispatcherOwner$findViewTreeOnBackPressed
 androidx.activity.ViewTreeOnBackPressedDispatcherOwner:
     public static final androidx.activity.OnBackPressedDispatcherOwner get(android.view.View)
 androidx.activity.compose.ActivityComposeUtilsKt
-androidx.activity.compose.ActivityResultLauncherHolder
-androidx.activity.compose.ActivityResultRegistryKt$rememberLauncherForActivityResult$1$1$invoke$$inlined$onDispose$1
-androidx.activity.compose.ActivityResultRegistryKt$rememberLauncherForActivityResult$1$1
-androidx.activity.compose.ActivityResultRegistryKt$rememberLauncherForActivityResult$key$1
-androidx.activity.compose.ActivityResultRegistryKt
+androidx.activity.compose.ActivityResultLauncherHolder:
+    public final androidx.activity.result.ActivityResultLauncher getLauncher()
 androidx.activity.compose.BackHandlerKt$BackHandler$1$1
 androidx.activity.compose.BackHandlerKt$BackHandler$2$1$invoke$$inlined$onDispose$1
 androidx.activity.compose.BackHandlerKt$BackHandler$2$1
 androidx.activity.compose.BackHandlerKt$BackHandler$3
 androidx.activity.compose.BackHandlerKt$BackHandler$backCallback$1$1
 androidx.activity.compose.BackHandlerKt
-androidx.activity.compose.LocalActivityResultRegistryOwner$LocalComposition$1
-androidx.activity.compose.LocalActivityResultRegistryOwner
+androidx.activity.compose.LocalActivityResultRegistryOwner:
+    public static final int $stable
+    public final androidx.compose.runtime.ProvidedValue provides(androidx.activity.result.ActivityResultRegistryOwner)
 androidx.activity.compose.LocalFullyDrawnReporterOwner$LocalFullyDrawnReporterOwner$1
 androidx.activity.compose.LocalFullyDrawnReporterOwner
 androidx.activity.compose.LocalOnBackPressedDispatcherOwner$LocalOnBackPressedDispatcherOwner$1
 androidx.activity.compose.LocalOnBackPressedDispatcherOwner
-androidx.activity.compose.ManagedActivityResultLauncher
+androidx.activity.compose.ManagedActivityResultLauncher:
+    public androidx.activity.result.contract.ActivityResultContract getContract()
 androidx.activity.compose.OnBackInstance$job$1$1
 androidx.activity.compose.OnBackInstance$job$1
 androidx.activity.compose.OnBackInstance
@@ -189,8 +183,6 @@ androidx.activity.ktx.R
 androidx.activity.result.ActivityResult$Companion:
     public static synthetic void getCREATOR$annotations()
 androidx.activity.result.ActivityResult:
-    public final android.content.Intent getData()
-    public final int getResultCode()
     public static final java.lang.String resultCodeToString(int)
 androidx.activity.result.ActivityResultCaller
 androidx.activity.result.ActivityResultCallerKt
@@ -198,16 +190,18 @@ androidx.activity.result.ActivityResultCallerLauncher$resultContract$2$1
 androidx.activity.result.ActivityResultCallerLauncher$resultContract$2
 androidx.activity.result.ActivityResultCallerLauncher
 androidx.activity.result.ActivityResultKt
-androidx.activity.result.ActivityResultLauncher
+androidx.activity.result.ActivityResultLauncher:
+    public abstract androidx.activity.result.contract.ActivityResultContract getContract()
 androidx.activity.result.ActivityResultLauncherKt
-androidx.activity.result.ActivityResultRegistry$CallbackAndContract:
-    private final androidx.activity.result.ActivityResultCallback callback
-    private final androidx.activity.result.contract.ActivityResultContract contract
-    public void <init>(androidx.activity.result.ActivityResultCallback,androidx.activity.result.contract.ActivityResultContract)
-androidx.activity.result.ActivityResultRegistry$LifecycleContainer
-androidx.activity.result.ActivityResultRegistry$generateRandomNumber$1
+androidx.activity.result.ActivityResultRegistry$LifecycleContainer:
+    private final androidx.lifecycle.Lifecycle lifecycle
+    private final java.util.List observers
+    public void <init>(androidx.lifecycle.Lifecycle)
+    public final void addObserver(androidx.lifecycle.LifecycleEventObserver)
+    public final androidx.lifecycle.Lifecycle getLifecycle()
 androidx.activity.result.ActivityResultRegistry$register$2
-androidx.activity.result.ActivityResultRegistry$register$3
+androidx.activity.result.ActivityResultRegistry$register$3:
+    public androidx.activity.result.contract.ActivityResultContract getContract()
 androidx.activity.result.ActivityResultRegistry:
     private static final int INITIAL_REQUEST_CODE_VALUE
     private static final java.lang.String KEY_COMPONENT_ACTIVITY_LAUNCHED_KEYS
@@ -215,36 +209,26 @@ androidx.activity.result.ActivityResultRegistry:
     private static final java.lang.String KEY_COMPONENT_ACTIVITY_REGISTERED_KEYS
     private static final java.lang.String KEY_COMPONENT_ACTIVITY_REGISTERED_RCS
     private static final java.lang.String LOG_TAG
-    public static final synthetic java.util.Map access$getKeyToRc$p(androidx.activity.result.ActivityResultRegistry)
-    public static final synthetic java.util.List access$getLaunchedKeys$p(androidx.activity.result.ActivityResultRegistry)
-    public final boolean dispatchResult(int,java.lang.Object)
-    private final int generateRandomNumber()
-    public abstract void onLaunch(int,androidx.activity.result.contract.ActivityResultContract,java.lang.Object,androidx.core.app.ActivityOptionsCompat)
-    public final androidx.activity.result.ActivityResultLauncher register(java.lang.String,androidx.activity.result.contract.ActivityResultContract,androidx.activity.result.ActivityResultCallback)
     public final androidx.activity.result.ActivityResultLauncher register(java.lang.String,androidx.lifecycle.LifecycleOwner,androidx.activity.result.contract.ActivityResultContract,androidx.activity.result.ActivityResultCallback)
     private static final void register$lambda$1(androidx.activity.result.ActivityResultRegistry,java.lang.String,androidx.activity.result.ActivityResultCallback,androidx.activity.result.contract.ActivityResultContract,androidx.lifecycle.LifecycleOwner,androidx.lifecycle.Lifecycle$Event)
-    private final void registerKey(java.lang.String)
-    public final void unregister$activity_release(java.lang.String)
-androidx.activity.result.ActivityResultRegistryOwner
 androidx.activity.result.IntentSenderRequest$Builder$Flag
 androidx.activity.result.IntentSenderRequest$Builder
-androidx.activity.result.IntentSenderRequest$Companion$CREATOR$1
-androidx.activity.result.IntentSenderRequest$Companion
-androidx.activity.result.IntentSenderRequest
+androidx.activity.result.IntentSenderRequest$Companion:
+    public static synthetic void getCREATOR$annotations()
+androidx.activity.result.IntentSenderRequest:
+    public synthetic void <init>(android.content.IntentSender,android.content.Intent,int,int,int,kotlin.jvm.internal.DefaultConstructorMarker)
 androidx.activity.result.PickVisualMediaRequest$Builder
 androidx.activity.result.PickVisualMediaRequest
 androidx.activity.result.PickVisualMediaRequestKt
-androidx.activity.result.contract.ActivityResultContract$SynchronousResult
-androidx.activity.result.contract.ActivityResultContract:
-    public void <init>()
-    public abstract android.content.Intent createIntent(android.content.Context,java.lang.Object)
-    public androidx.activity.result.contract.ActivityResultContract$SynchronousResult getSynchronousResult(android.content.Context,java.lang.Object)
+androidx.activity.result.contract.ActivityResultContract$SynchronousResult:
+    private final java.lang.Object value
+    public void <init>(java.lang.Object)
 androidx.activity.result.contract.ActivityResultContracts$CaptureVideo
-androidx.activity.result.contract.ActivityResultContracts$CreateDocument
+androidx.activity.result.contract.ActivityResultContracts$CreateDocument:
+    public void <init>()
 androidx.activity.result.contract.ActivityResultContracts$GetContent
 androidx.activity.result.contract.ActivityResultContracts$GetMultipleContents$Companion
 androidx.activity.result.contract.ActivityResultContracts$GetMultipleContents
-androidx.activity.result.contract.ActivityResultContracts$OpenDocument
 androidx.activity.result.contract.ActivityResultContracts$OpenDocumentTree
 androidx.activity.result.contract.ActivityResultContracts$OpenMultipleDocuments
 androidx.activity.result.contract.ActivityResultContracts$PickContact
@@ -2572,9 +2556,6 @@ androidx.compose.foundation.ProgressSemanticsKt
 androidx.compose.foundation.R$string
 androidx.compose.foundation.R
 androidx.compose.foundation.RectListNode
-androidx.compose.foundation.ScrollKt:
-    public static final androidx.compose.ui.Modifier horizontalScroll(androidx.compose.ui.Modifier,androidx.compose.foundation.ScrollState,boolean,androidx.compose.foundation.gestures.FlingBehavior,boolean)
-    public static synthetic androidx.compose.ui.Modifier horizontalScroll$default(androidx.compose.ui.Modifier,androidx.compose.foundation.ScrollState,boolean,androidx.compose.foundation.gestures.FlingBehavior,boolean,int,java.lang.Object)
 androidx.compose.foundation.ScrollSemanticsElement:
     public final androidx.compose.foundation.ScrollState component1()
     public final boolean component2()
@@ -5910,25 +5891,35 @@ androidx.compose.material3.ChipKt$AssistChip$3
 androidx.compose.material3.ChipKt$Chip$1
 androidx.compose.material3.ChipKt$Chip$2
 androidx.compose.material3.ChipKt$Chip$3
-androidx.compose.material3.ChipKt$ChipContent$1$1$1
-androidx.compose.material3.ChipKt$ChipContent$1$1
-androidx.compose.material3.ChipKt$ChipContent$1
-androidx.compose.material3.ChipKt$ChipContent$2
 androidx.compose.material3.ChipKt$ElevatedAssistChip$1
 androidx.compose.material3.ChipKt$ElevatedAssistChip$3
 androidx.compose.material3.ChipKt$ElevatedFilterChip$1
 androidx.compose.material3.ChipKt$ElevatedSuggestionChip$1
 androidx.compose.material3.ChipKt$ElevatedSuggestionChip$3
-androidx.compose.material3.ChipKt$FilterChip$1
 androidx.compose.material3.ChipKt$InputChip$1$1$1
 androidx.compose.material3.ChipKt$InputChip$1
 androidx.compose.material3.ChipKt$InputChip$2
-androidx.compose.material3.ChipKt$SelectableChip$1
-androidx.compose.material3.ChipKt$SelectableChip$2
-androidx.compose.material3.ChipKt$SelectableChip$3
 androidx.compose.material3.ChipKt$SuggestionChip$1
 androidx.compose.material3.ChipKt$SuggestionChip$3
-androidx.compose.material3.ChipKt
+androidx.compose.material3.ChipKt:
+    private static final java.lang.String LabelLayoutId
+    private static final java.lang.String LeadingIconLayoutId
+    private static final java.lang.String TrailingIconLayoutId
+    public static final void AssistChip(kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.foundation.BorderStroke,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int,int)
+    public static final synthetic void AssistChip(kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.material3.ChipBorder,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int,int)
+    private static final void Chip-nkUnTEs(androidx.compose.ui.Modifier,kotlin.jvm.functions.Function0,boolean,kotlin.jvm.functions.Function2,androidx.compose.ui.text.TextStyle,long,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.foundation.BorderStroke,float,androidx.compose.foundation.layout.PaddingValues,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int)
+    public static final void ElevatedAssistChip(kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.foundation.BorderStroke,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int,int)
+    public static final synthetic void ElevatedAssistChip(kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.material3.ChipBorder,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int,int)
+    public static final void ElevatedFilterChip(boolean,kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.SelectableChipColors,androidx.compose.material3.SelectableChipElevation,androidx.compose.foundation.BorderStroke,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int,int)
+    public static final void ElevatedSuggestionChip(kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.foundation.BorderStroke,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int)
+    public static final synthetic void ElevatedSuggestionChip(kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.material3.ChipBorder,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int)
+    public static final void InputChip(boolean,kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.SelectableChipColors,androidx.compose.material3.SelectableChipElevation,androidx.compose.foundation.BorderStroke,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int,int)
+    public static final void SuggestionChip(kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.foundation.BorderStroke,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int)
+    public static final synthetic void SuggestionChip(kotlin.jvm.functions.Function0,kotlin.jvm.functions.Function2,androidx.compose.ui.Modifier,boolean,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.material3.ChipBorder,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int)
+    public static final synthetic void access$Chip-nkUnTEs(androidx.compose.ui.Modifier,kotlin.jvm.functions.Function0,boolean,kotlin.jvm.functions.Function2,androidx.compose.ui.text.TextStyle,long,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,androidx.compose.ui.graphics.Shape,androidx.compose.material3.ChipColors,androidx.compose.material3.ChipElevation,androidx.compose.foundation.BorderStroke,float,androidx.compose.foundation.layout.PaddingValues,androidx.compose.foundation.interaction.MutableInteractionSource,androidx.compose.runtime.Composer,int,int)
+    public static final androidx.compose.material3.ChipColors getDefaultSuggestionChipColors(androidx.compose.material3.ColorScheme)
+    private static final androidx.compose.foundation.layout.PaddingValues inputChipPadding(boolean,boolean,boolean)
+    static synthetic androidx.compose.foundation.layout.PaddingValues inputChipPadding$default(boolean,boolean,boolean,int,java.lang.Object)
 androidx.compose.material3.ClockDialModifier
 androidx.compose.material3.ClockDialNode$pointerInputDragNode$1$1$1
 androidx.compose.material3.ClockDialNode$pointerInputDragNode$1$1
@@ -5959,7 +5950,6 @@ androidx.compose.material3.ColorScheme:
     private androidx.compose.material3.ButtonColors defaultFilledTonalButtonColorsCached
     private androidx.compose.material3.IconButtonColors defaultFilledTonalIconButtonColorsCached
     private androidx.compose.material3.IconToggleButtonColors defaultFilledTonalIconToggleButtonColorsCached
-    private androidx.compose.material3.SelectableChipColors defaultFilterChipColorsCached
     private androidx.compose.material3.IconToggleButtonColors defaultIconToggleButtonColorsCached
     private androidx.compose.material3.SelectableChipColors defaultInputChipColorsCached
     private androidx.compose.material3.TopAppBarColors defaultLargeTopAppBarColorsCached
@@ -5999,7 +5989,6 @@ androidx.compose.material3.ColorScheme:
     public final androidx.compose.material3.ButtonColors getDefaultFilledTonalButtonColorsCached$material3_release()
     public final androidx.compose.material3.IconButtonColors getDefaultFilledTonalIconButtonColorsCached$material3_release()
     public final androidx.compose.material3.IconToggleButtonColors getDefaultFilledTonalIconToggleButtonColorsCached$material3_release()
-    public final androidx.compose.material3.SelectableChipColors getDefaultFilterChipColorsCached$material3_release()
     public final androidx.compose.material3.IconToggleButtonColors getDefaultIconToggleButtonColorsCached$material3_release()
     public final androidx.compose.material3.SelectableChipColors getDefaultInputChipColorsCached$material3_release()
     public final androidx.compose.material3.TopAppBarColors getDefaultLargeTopAppBarColorsCached$material3_release()
@@ -6037,7 +6026,6 @@ androidx.compose.material3.ColorScheme:
     public final void setDefaultFilledTonalButtonColorsCached$material3_release(androidx.compose.material3.ButtonColors)
     public final void setDefaultFilledTonalIconButtonColorsCached$material3_release(androidx.compose.material3.IconButtonColors)
     public final void setDefaultFilledTonalIconToggleButtonColorsCached$material3_release(androidx.compose.material3.IconToggleButtonColors)
-    public final void setDefaultFilterChipColorsCached$material3_release(androidx.compose.material3.SelectableChipColors)
     public final void setDefaultIconToggleButtonColorsCached$material3_release(androidx.compose.material3.IconToggleButtonColors)
     public final void setDefaultInputChipColorsCached$material3_release(androidx.compose.material3.SelectableChipColors)
     public final void setDefaultLargeTopAppBarColorsCached$material3_release(androidx.compose.material3.TopAppBarColors)
@@ -6393,7 +6381,14 @@ androidx.compose.material3.FabPosition:
     public final synthetic int unbox-impl()
 androidx.compose.material3.FadeInFadeOutAnimationItem
 androidx.compose.material3.FadeInFadeOutState
-androidx.compose.material3.FilterChipDefaults
+androidx.compose.material3.FilterChipDefaults:
+    public static final int $stable
+    public final androidx.compose.material3.SelectableChipColors elevatedFilterChipColors(androidx.compose.runtime.Composer,int)
+    public final androidx.compose.material3.SelectableChipColors elevatedFilterChipColors-XqyqHi0(long,long,long,long,long,long,long,long,long,long,long,long,androidx.compose.runtime.Composer,int,int,int)
+    public final androidx.compose.material3.SelectableChipElevation elevatedFilterChipElevation-aqJV_2Y(float,float,float,float,float,float,androidx.compose.runtime.Composer,int,int)
+    public final androidx.compose.material3.SelectableChipColors filterChipColors-XqyqHi0(long,long,long,long,long,long,long,long,long,long,long,long,androidx.compose.runtime.Composer,int,int,int)
+    public final androidx.compose.material3.SelectableChipColors getDefaultElevatedFilterChipColors$material3_release(androidx.compose.material3.ColorScheme)
+    public final float getIconSize-D9Ej5fM()
 androidx.compose.material3.FloatingActionButtonDefaults
 androidx.compose.material3.FloatingActionButtonElevation$animateElevation$1$1
 androidx.compose.material3.FloatingActionButtonElevation$animateElevation$2$1$1$1
@@ -6945,11 +6940,18 @@ androidx.compose.material3.SegmentedButtonKt:
     private static final float CheckedZIndexFactor
     public static final void MultiChoiceSegmentedButtonRow-uFdPcIQ(androidx.compose.ui.Modifier,float,kotlin.jvm.functions.Function3,androidx.compose.runtime.Composer,int,int)
     public static final void SegmentedButton(androidx.compose.material3.MultiChoiceSegmentedButtonRowScope,boolean,kotlin.jvm.functions.Function1,androidx.compose.ui.graphics.Shape,androidx.compose.ui.Modifier,boolean,androidx.compose.material3.SegmentedButtonColors,androidx.compose.foundation.BorderStroke,androidx.compose.foundation.interaction.MutableInteractionSource,kotlin.jvm.functions.Function2,kotlin.jvm.functions.Function2,androidx.compose.runtime.Composer,int,int,int)
-androidx.compose.material3.SelectableChipColors
-androidx.compose.material3.SelectableChipElevation$animateElevation$1$1$1
-androidx.compose.material3.SelectableChipElevation$animateElevation$1$1
-androidx.compose.material3.SelectableChipElevation$animateElevation$2$1
-androidx.compose.material3.SelectableChipElevation
+androidx.compose.material3.SelectableChipColors:
+    public static final int $stable
+    public final androidx.compose.material3.SelectableChipColors copy-daRQuJA(long,long,long,long,long,long,long,long,long,long,long,long,long)
+    public static synthetic androidx.compose.material3.SelectableChipColors copy-daRQuJA$default(androidx.compose.material3.SelectableChipColors,long,long,long,long,long,long,long,long,long,long,long,long,long,int,java.lang.Object)
+androidx.compose.material3.SelectableChipElevation:
+    public static final int $stable
+    public final float getDisabledElevation-D9Ej5fM()
+    public final float getDraggedElevation-D9Ej5fM()
+    public final float getElevation-D9Ej5fM()
+    public final float getFocusedElevation-D9Ej5fM()
+    public final float getHoveredElevation-D9Ej5fM()
+    public final float getPressedElevation-D9Ej5fM()
 androidx.compose.material3.SelectableDates
 androidx.compose.material3.SelectedRangeInfo$Companion
 androidx.compose.material3.SelectedRangeInfo
@@ -7855,7 +7857,50 @@ androidx.compose.material3.tokens.FilledIconButtonTokens
 androidx.compose.material3.tokens.FilledTextFieldTokens
 androidx.compose.material3.tokens.FilledTonalButtonTokens
 androidx.compose.material3.tokens.FilledTonalIconButtonTokens
-androidx.compose.material3.tokens.FilterChipTokens
+androidx.compose.material3.tokens.FilterChipTokens:
+    public static final int $stable
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getDisabledTrailingIconColor()
+    public final float getDisabledTrailingIconOpacity()
+    public final float getElevatedContainerElevation-D9Ej5fM()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getElevatedDisabledContainerColor()
+    public final float getElevatedDisabledContainerElevation-D9Ej5fM()
+    public final float getElevatedDisabledContainerOpacity()
+    public final float getElevatedFocusContainerElevation-D9Ej5fM()
+    public final float getElevatedHoverContainerElevation-D9Ej5fM()
+    public final float getElevatedPressedContainerElevation-D9Ej5fM()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getElevatedSelectedContainerColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getElevatedUnselectedContainerColor()
+    public final float getFlatUnselectedFocusContainerElevation-D9Ej5fM()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getFlatUnselectedFocusOutlineColor()
+    public final float getFlatUnselectedHoverContainerElevation-D9Ej5fM()
+    public final float getFlatUnselectedPressedContainerElevation-D9Ej5fM()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getFocusIndicatorColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedDraggedLabelTextColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedDraggedLeadingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedDraggedTrailingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedFocusLabelTextColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedFocusLeadingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedFocusTrailingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedHoverLabelTextColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedHoverLeadingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedHoverTrailingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedPressedLabelTextColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedPressedLeadingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedPressedTrailingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getSelectedTrailingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedDraggedLabelTextColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedDraggedLeadingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedDraggedTrailingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedFocusLabelTextColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedFocusLeadingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedFocusTrailingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedHoverLabelTextColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedHoverLeadingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedHoverTrailingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedPressedLabelTextColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedPressedLeadingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedPressedTrailingIconColor()
+    public final androidx.compose.material3.tokens.ColorSchemeKeyTokens getUnselectedTrailingIconColor()
 androidx.compose.material3.tokens.IconButtonTokens:
     public static final int $stable
     public static final float DisabledIconOpacity
@@ -8344,7 +8389,6 @@ androidx.compose.runtime.EffectsKt$rememberCoroutineScope$1
 androidx.compose.runtime.EffectsKt:
     private static final java.lang.String DisposableEffectNoParamError
     private static final java.lang.String LaunchedEffectNoParamError
-    public static final void DisposableEffect(java.lang.Object,java.lang.Object,java.lang.Object,kotlin.jvm.functions.Function1,androidx.compose.runtime.Composer,int)
     public static final void DisposableEffect(kotlin.jvm.functions.Function1,androidx.compose.runtime.Composer,int)
     public static final void DisposableEffect(java.lang.Object[],kotlin.jvm.functions.Function1,androidx.compose.runtime.Composer,int)
     public static final void LaunchedEffect(java.lang.Object,java.lang.Object,java.lang.Object,kotlin.jvm.functions.Function2,androidx.compose.runtime.Composer,int)
@@ -16107,19 +16151,38 @@ androidx.core.animation.AnimatorKt$doOnEnd$$inlined$addListener$default$1
 androidx.core.animation.AnimatorKt$doOnRepeat$$inlined$addListener$default$1
 androidx.core.animation.AnimatorKt$doOnStart$$inlined$addListener$default$1
 androidx.core.animation.AnimatorKt
-androidx.core.app.ActivityCompat$1
 androidx.core.app.ActivityCompat$Api21Impl
 androidx.core.app.ActivityCompat$Api22Impl
-androidx.core.app.ActivityCompat$Api23Impl
+androidx.core.app.ActivityCompat$Api23Impl:
+    private void <init>()
+    static void onSharedElementsReady(java.lang.Object)
+    static boolean shouldShowRequestPermissionRationale(android.app.Activity,java.lang.String)
 androidx.core.app.ActivityCompat$Api28Impl
 androidx.core.app.ActivityCompat$Api30Impl
 androidx.core.app.ActivityCompat$Api31Impl
 androidx.core.app.ActivityCompat$Api32Impl
-androidx.core.app.ActivityCompat$OnRequestPermissionsResultCallback
-androidx.core.app.ActivityCompat$PermissionCompatDelegate
-androidx.core.app.ActivityCompat$RequestPermissionsRequestCodeValidator
+androidx.core.app.ActivityCompat$PermissionCompatDelegate:
+    public abstract boolean onActivityResult(android.app.Activity,int,int,android.content.Intent)
 androidx.core.app.ActivityCompat$SharedElementCallback21Impl
-androidx.core.app.ActivityCompat
+androidx.core.app.ActivityCompat:
+    protected void <init>()
+    public static void finishAffinity(android.app.Activity)
+    public static void finishAfterTransition(android.app.Activity)
+    public static androidx.core.app.ActivityCompat$PermissionCompatDelegate getPermissionCompatDelegate()
+    public static android.net.Uri getReferrer(android.app.Activity)
+    public static boolean invalidateOptionsMenu(android.app.Activity)
+    public static boolean isLaunchedFromBubble(android.app.Activity)
+    private static synthetic void lambda$recreate$0(android.app.Activity)
+    public static void postponeEnterTransition(android.app.Activity)
+    public static void recreate(android.app.Activity)
+    public static androidx.core.view.DragAndDropPermissionsCompat requestDragAndDropPermissions(android.app.Activity,android.view.DragEvent)
+    public static android.view.View requireViewById(android.app.Activity,int)
+    public static void setEnterSharedElementCallback(android.app.Activity,androidx.core.app.SharedElementCallback)
+    public static void setExitSharedElementCallback(android.app.Activity,androidx.core.app.SharedElementCallback)
+    public static void setLocusContext(android.app.Activity,androidx.core.content.LocusIdCompat,android.os.Bundle)
+    public static void setPermissionCompatDelegate(androidx.core.app.ActivityCompat$PermissionCompatDelegate)
+    public static boolean shouldShowRequestPermissionRationale(android.app.Activity,java.lang.String)
+    public static void startPostponedEnterTransition(android.app.Activity)
 androidx.core.app.ActivityManagerCompat
 androidx.core.app.ActivityOptionsCompat$ActivityOptionsCompatImpl
 androidx.core.app.ActivityOptionsCompat$Api21Impl
@@ -16128,7 +16191,24 @@ androidx.core.app.ActivityOptionsCompat$Api24Impl
 androidx.core.app.ActivityOptionsCompat$Api33Impl
 androidx.core.app.ActivityOptionsCompat$Api34Impl
 androidx.core.app.ActivityOptionsCompat$BackgroundActivityStartMode
-androidx.core.app.ActivityOptionsCompat
+androidx.core.app.ActivityOptionsCompat:
+    public static final java.lang.String EXTRA_USAGE_TIME_REPORT
+    public static final java.lang.String EXTRA_USAGE_TIME_REPORT_PACKAGES
+    protected void <init>()
+    public android.graphics.Rect getLaunchBounds()
+    public static androidx.core.app.ActivityOptionsCompat makeBasic()
+    public static androidx.core.app.ActivityOptionsCompat makeClipRevealAnimation(android.view.View,int,int,int,int)
+    public static androidx.core.app.ActivityOptionsCompat makeCustomAnimation(android.content.Context,int,int)
+    public static androidx.core.app.ActivityOptionsCompat makeScaleUpAnimation(android.view.View,int,int,int,int)
+    public static androidx.core.app.ActivityOptionsCompat makeSceneTransitionAnimation(android.app.Activity,android.view.View,java.lang.String)
+    public static varargs androidx.core.app.ActivityOptionsCompat makeSceneTransitionAnimation(android.app.Activity,androidx.core.util.Pair[])
+    public static androidx.core.app.ActivityOptionsCompat makeTaskLaunchBehind()
+    public static androidx.core.app.ActivityOptionsCompat makeThumbnailScaleUpAnimation(android.view.View,android.graphics.Bitmap,int,int)
+    public void requestUsageTimeReport(android.app.PendingIntent)
+    public androidx.core.app.ActivityOptionsCompat setLaunchBounds(android.graphics.Rect)
+    public androidx.core.app.ActivityOptionsCompat setPendingIntentBackgroundActivityStartMode(int)
+    public androidx.core.app.ActivityOptionsCompat setShareIdentityEnabled(boolean)
+    public void update(androidx.core.app.ActivityOptionsCompat)
 androidx.core.app.ActivityRecreator$1
 androidx.core.app.ActivityRecreator$2
 androidx.core.app.ActivityRecreator$3
@@ -16831,8 +16911,20 @@ androidx.core.os.BuildCompat:
     public static final boolean isAtLeastSv2()
     public static final boolean isAtLeastT()
     public static final boolean isAtLeastU()
-androidx.core.os.BundleCompat$Api33Impl
-androidx.core.os.BundleCompat
+androidx.core.os.BundleCompat$Api33Impl:
+    private void <init>()
+    static java.lang.Object[] getParcelableArray(android.os.Bundle,java.lang.String,java.lang.Class)
+    static java.util.ArrayList getParcelableArrayList(android.os.Bundle,java.lang.String,java.lang.Class)
+    static java.io.Serializable getSerializable(android.os.Bundle,java.lang.String,java.lang.Class)
+    static android.util.SparseArray getSparseParcelableArray(android.os.Bundle,java.lang.String,java.lang.Class)
+androidx.core.os.BundleCompat:
+    private void <init>()
+    public static android.os.IBinder getBinder(android.os.Bundle,java.lang.String)
+    public static android.os.Parcelable[] getParcelableArray(android.os.Bundle,java.lang.String,java.lang.Class)
+    public static java.util.ArrayList getParcelableArrayList(android.os.Bundle,java.lang.String,java.lang.Class)
+    public static java.io.Serializable getSerializable(android.os.Bundle,java.lang.String,java.lang.Class)
+    public static android.util.SparseArray getSparseParcelableArray(android.os.Bundle,java.lang.String,java.lang.Class)
+    public static void putBinder(android.os.Bundle,java.lang.String,android.os.IBinder)
 androidx.core.os.BundleKt:
     public static final android.os.Bundle bundleOf()
 androidx.core.os.CancellationSignal$OnCancelListener
@@ -19091,6 +19183,15 @@ com.turingmirror.moetext.data.ConfigStore:
     private static final java.lang.String LEGACY_KEY_SUFFIX_TEXT
     private static final java.lang.String LEGACY_KEY_TAIL_TEXT
     private static final java.lang.String PREFS
+com.turingmirror.moetext.data.PresetCodec:
+    public static final int $stable
+com.turingmirror.moetext.data.StylePreset:
+    public final java.lang.String component1()
+    public final java.lang.String component2()
+    public final com.turingmirror.moetext.engine.AppConfig component3()
+    public final com.turingmirror.moetext.data.StylePreset copy(java.lang.String,java.lang.String,com.turingmirror.moetext.engine.AppConfig)
+    public static synthetic com.turingmirror.moetext.data.StylePreset copy$default(com.turingmirror.moetext.data.StylePreset,java.lang.String,java.lang.String,com.turingmirror.moetext.engine.AppConfig,int,java.lang.Object)
+    public final java.lang.String getId()
 com.turingmirror.moetext.engine.AppConfig:
     public void <init>()
     public final boolean component1()
@@ -22882,7 +22983,6 @@ kotlin.random.AbstractPlatformRandom:
     public byte[] nextBytes(byte[])
     public double nextDouble()
     public float nextFloat()
-    public int nextInt(int)
     public long nextLong()
 kotlin.random.KotlinRandom$Companion
 kotlin.random.KotlinRandom
@@ -22900,7 +23000,6 @@ kotlin.random.Random$Default:
     public double nextDouble(double)
     public double nextDouble(double,double)
     public float nextFloat()
-    public int nextInt(int)
     public int nextInt(int,int)
     public long nextLong()
     public long nextLong(long)
@@ -22917,7 +23016,6 @@ kotlin.random.Random:
     public double nextDouble(double)
     public double nextDouble(double,double)
     public float nextFloat()
-    public int nextInt(int)
     public int nextInt(int,int)
     public long nextLong()
     public long nextLong(long)
@@ -23298,7 +23396,6 @@ kotlin.sequences.SequencesKt__SequencesKt$flatMapIndexed$1
 kotlin.sequences.SequencesKt__SequencesKt$flatten$1
 kotlin.sequences.SequencesKt__SequencesKt$flatten$2
 kotlin.sequences.SequencesKt__SequencesKt$flatten$3
-kotlin.sequences.SequencesKt__SequencesKt$generateSequence$1
 kotlin.sequences.SequencesKt__SequencesKt$ifEmpty$1
 kotlin.sequences.SequencesKt__SequencesKt$shuffled$1
 kotlin.sequences.SequencesKt__SequencesKt:
@@ -23309,7 +23406,6 @@ kotlin.sequences.SequencesKt__SequencesKt:
     public static final kotlin.sequences.Sequence flatten(kotlin.sequences.Sequence)
     private static final kotlin.sequences.Sequence flatten$SequencesKt__SequencesKt(kotlin.sequences.Sequence,kotlin.jvm.functions.Function1)
     public static final kotlin.sequences.Sequence flattenSequenceOfIterable(kotlin.sequences.Sequence)
-    public static final kotlin.sequences.Sequence generateSequence(kotlin.jvm.functions.Function0)
     public static final kotlin.sequences.Sequence ifEmpty(kotlin.sequences.Sequence,kotlin.jvm.functions.Function0)
     private static final kotlin.sequences.Sequence orEmpty(kotlin.sequences.Sequence)
     public static final varargs kotlin.sequences.Sequence sequenceOf(java.lang.Object[])
@@ -26250,8 +26346,7 @@ androidx.activity.ComponentActivity$NonConfigurationInstances:
 androidx.activity.ComponentActivity$ReportFullyDrawnExecutor
 androidx.activity.ComponentActivity$ReportFullyDrawnExecutorImpl:
     public static void activityDestroyed()
-androidx.activity.ComponentActivity$activityResultRegistry$1:
-    public final synthetic androidx.activity.ComponentActivity this$0
+androidx.activity.ComponentActivity$activityResultRegistry$1$$InternalSyntheticLambda$6$0313431f184ded0190468893867673a495b8389884b233802485a072b0b052c0$0
 androidx.activity.ComponentActivity$defaultViewModelProviderFactory$2:
     public static androidx.lifecycle.SavedStateViewModelFactory invoke()
 androidx.activity.ComponentActivity$fullyDrawnReporter$2$1:
@@ -26271,6 +26366,7 @@ androidx.activity.ComponentActivity:
     public abstract void addOnContextAvailableListener()
     public abstract androidx.activity.ComponentActivity$ReportFullyDrawnExecutorImpl createFullyDrawnExecutor()
     public final void ensureViewModelStore()
+    public abstract androidx.activity.result.ActivityResultRegistry getActivityResultRegistry()
     public abstract androidx.lifecycle.viewmodel.CreationExtras getDefaultViewModelCreationExtras()
     public final androidx.activity.FullyDrawnReporter getFullyDrawnReporter()
     public abstract androidx.activity.OnBackPressedDispatcher getOnBackPressedDispatcher()
@@ -26331,6 +26427,27 @@ androidx.activity.OnBackPressedDispatcherOwner
 androidx.activity.R$id
 androidx.activity.ViewTreeFullyDrawnReporterOwner
 androidx.activity.ViewTreeOnBackPressedDispatcherOwner
+androidx.activity.compose.ActivityResultLauncherHolder:
+    public static final int $stable
+    static void <clinit>()
+    public static void setLauncher()
+    public static void unregister()
+androidx.activity.compose.ActivityResultRegistryKt$rememberLauncherForActivityResult$1$1$$InternalSyntheticLambda$5$73f830cb84aabba7c3556d94b03a0ee7635c7c539dbee2b1f24f850c612aba17$0:
+    public final void onActivityResult(java.lang.Object)
+androidx.activity.compose.ActivityResultRegistryKt$rememberLauncherForActivityResult$1$1:
+    public final androidx.compose.runtime.DisposableEffectResult invoke()
+androidx.activity.compose.ActivityResultRegistryKt$rememberLauncherForActivityResult$key$1:
+    public final java.lang.String invoke()
+androidx.activity.compose.LocalActivityResultRegistryOwner$LocalComposition$1:
+    public static androidx.activity.result.ActivityResultRegistryOwner invoke()
+androidx.activity.compose.LocalActivityResultRegistryOwner:
+    public static final androidx.activity.compose.LocalActivityResultRegistryOwner INSTANCE
+    public static androidx.activity.result.ActivityResultRegistryOwner getCurrent()
+androidx.activity.compose.ManagedActivityResultLauncher:
+    public static final int $stable
+    public final androidx.compose.runtime.State currentContract
+    static void <clinit>()
+    public final void unregister()
 androidx.activity.contextaware.ContextAwareHelper:
     public static void addOnContextAvailableListener()
     public static void clearAvailableContext()
@@ -26342,19 +26459,59 @@ androidx.activity.result.ActivityResult$Companion$CREATOR$1:
 androidx.activity.result.ActivityResult$Companion
 androidx.activity.result.ActivityResult:
     public static final androidx.activity.result.ActivityResult$Companion Companion
+    public static android.content.Intent getData()
+    public static int getResultCode()
 androidx.activity.result.ActivityResultCallback
-androidx.activity.result.ActivityResultRegistry$$InternalSyntheticThrowCCEIfNotNull$20$1981a9fa9dfed2a7ac707a5a00ceb474f1505e5b5fad2698b4c2bc805904e198$0
-androidx.activity.result.ActivityResultRegistry$CallbackAndContract
+androidx.activity.result.ActivityResultLauncher:
+    public abstract void launch()
+    public abstract void launch(java.io.Serializable)
+    public abstract void unregister()
+androidx.activity.result.ActivityResultRegistry$$InternalSyntheticThrowCCEIfNotNull$20$66bf402e660da17a42628ced6682ba4a7eada6c2a6bc57a8def86bfcdd1f2ec6$0
+androidx.activity.result.ActivityResultRegistry$CallbackAndContract:
+    public static androidx.activity.compose.ActivityResultRegistryKt$rememberLauncherForActivityResult$1$1$$InternalSyntheticLambda$5$73f830cb84aabba7c3556d94b03a0ee7635c7c539dbee2b1f24f850c612aba17$0 getCallback()
+    public static androidx.activity.result.contract.ActivityResultContract getContract()
 androidx.activity.result.ActivityResultRegistry$Companion
+androidx.activity.result.ActivityResultRegistry$LifecycleContainer
+androidx.activity.result.ActivityResultRegistry$generateRandomNumber$1:
+    public final java.lang.Integer invoke()
+androidx.activity.result.ActivityResultRegistry$register$3:
+    public final void launch(java.io.Serializable)
+    public final void unregister()
 androidx.activity.result.ActivityResultRegistry:
     public static final androidx.activity.result.ActivityResultRegistry$Companion Companion
-    public final java.util.Map keyToLifecycleContainers
     static void <clinit>()
-    public abstract void bindRcKey()
+    public final void bindRcKey(int,java.lang.String)
+    public abstract boolean dispatchResult()
     public abstract void doDispatch()
+    public abstract int generateRandomNumber()
+    public abstract void onLaunch(int,androidx.activity.result.contract.ActivityResultContract,java.io.Serializable)
     public abstract void onRestoreInstanceState()
     public abstract void onSaveInstanceState()
-androidx.activity.result.contract.ActivityResultContract
+    public abstract androidx.activity.result.ActivityResultLauncher register()
+    public abstract void registerKey()
+    public abstract void unregister$activity_release()
+androidx.activity.result.ActivityResultRegistryOwner:
+    public abstract androidx.activity.result.ActivityResultRegistry getActivityResultRegistry()
+androidx.activity.result.IntentSenderRequest$Companion$CREATOR$1:
+    public static androidx.activity.result.IntentSenderRequest createFromParcel()
+    public static androidx.activity.result.IntentSenderRequest[] newArray()
+androidx.activity.result.IntentSenderRequest$Companion
+androidx.activity.result.IntentSenderRequest:
+    public static final androidx.activity.result.IntentSenderRequest$Companion Companion
+    public static android.content.Intent getFillInIntent()
+    public static int getFlagsMask()
+    public static int getFlagsValues()
+    public static android.content.IntentSender getIntentSender()
+androidx.activity.result.contract.ActivityResultContract$SynchronousResult
+androidx.activity.result.contract.ActivityResultContracts$CreateDocument:
+    public final java.lang.String mimeType
+    public static android.content.Intent createIntent()
+    public static void getSynchronousResult()
+    public final android.net.Uri parseResult()
+androidx.activity.result.contract.ActivityResultContracts$OpenDocument:
+    public static android.content.Intent createIntent$1()
+    public static void getSynchronousResult$1()
+    public final android.net.Uri parseResult()
 androidx.arch.core.executor.ArchTaskExecutor$$InternalSyntheticLambda$2$9580060e502c9c6d010aedc242a8559b77fd3a2d76088a3dab3346eb50cca4bb$0
 androidx.arch.core.executor.ArchTaskExecutor$$InternalSyntheticLambda$2$9580060e502c9c6d010aedc242a8559b77fd3a2d76088a3dab3346eb50cca4bb$1
 androidx.arch.core.executor.ArchTaskExecutor:
@@ -27275,7 +27432,7 @@ androidx.compose.animation.core.VectorConvertersKt$IntSizeToVector$2:
 androidx.compose.animation.core.VectorConvertersKt$IntToVector$1:
     public static androidx.compose.animation.core.AnimationVector1D invoke$1()
 androidx.compose.animation.core.VectorConvertersKt$IntToVector$2:
-    public static java.lang.Integer invoke()
+    public static java.lang.Integer invoke$1()
 androidx.compose.animation.core.VectorConvertersKt$OffsetToVector$1:
     public final androidx.compose.animation.core.AnimationVector2D invoke-k-4lQ0M()
 androidx.compose.animation.core.VectorConvertersKt$OffsetToVector$2:
@@ -27465,7 +27622,6 @@ androidx.compose.foundation.ClickableNode:
 androidx.compose.foundation.Clickable_androidKt:
     public static final boolean isEnter-ZmokQxo(android.view.KeyEvent)
 androidx.compose.foundation.ClipScrollableContainerKt:
-    public static final androidx.compose.ui.Modifier HorizontalScrollableClipModifier
     public static final float getMaxSupportedElevation()
 androidx.compose.foundation.DarkThemeKt
 androidx.compose.foundation.DarkTheme_androidKt
@@ -27637,13 +27793,13 @@ androidx.compose.foundation.ScrollKt$rememberScrollState$1$1:
 androidx.compose.foundation.ScrollKt$scroll$$inlined$debugInspectorInfo$1$$InternalSyntheticThrowCCEIfNotNull$18$cb914f0b3833d5cb47d6f48974e6d43526905d27451c8c40c5e1cabe82ebb9df$0
 androidx.compose.foundation.ScrollKt$scroll$$inlined$debugInspectorInfo$1
 androidx.compose.foundation.ScrollKt$scroll$2:
-    public final synthetic boolean $isVertical
     public final androidx.compose.ui.Modifier invoke()
+androidx.compose.foundation.ScrollKt:
+    public static final androidx.compose.ui.Modifier scroll(androidx.compose.ui.Modifier,androidx.compose.foundation.ScrollState,boolean,androidx.compose.foundation.gestures.FlingBehavior,boolean,boolean)
 androidx.compose.foundation.ScrollSemanticsElement$$InternalSyntheticBackport$5$f25e56c534b43412ceb6f20d8ec33158e203759b659aff6319ddf278fa737219$0
 androidx.compose.foundation.ScrollSemanticsElement$$InternalSyntheticBackport$5$f25e56c534b43412ceb6f20d8ec33158e203759b659aff6319ddf278fa737219$1
 androidx.compose.foundation.ScrollSemanticsElement$$InternalSyntheticBackport$5$f25e56c534b43412ceb6f20d8ec33158e203759b659aff6319ddf278fa737219$2
 androidx.compose.foundation.ScrollSemanticsElement:
-    public final boolean isVertical
     public static androidx.compose.foundation.ScrollSemanticsModifierNode create()
     public static void update$8()
 androidx.compose.foundation.ScrollSemanticsModifierNode$applySemantics$accessibilityScrollState$1:
@@ -27660,7 +27816,7 @@ androidx.compose.foundation.ScrollSemanticsModifierNode:
     public static void setState()
     public final void setVertical()
 androidx.compose.foundation.ScrollState$Companion$Saver$1:
-    public static java.lang.Integer invoke$1()
+    public static java.lang.Integer invoke$2()
 androidx.compose.foundation.ScrollState$Companion$Saver$2:
     public static androidx.compose.foundation.ScrollState invoke$1()
 androidx.compose.foundation.ScrollState$Companion
@@ -27682,7 +27838,6 @@ androidx.compose.foundation.ScrollingContainerKt
 androidx.compose.foundation.ScrollingLayoutElement$$InternalSyntheticBackport$5$c699582c58549c57e85f7d85dc1a9b4a16588eaf9195dac707a575a9f7137f09$0
 androidx.compose.foundation.ScrollingLayoutElement$$InternalSyntheticBackport$5$c699582c58549c57e85f7d85dc1a9b4a16588eaf9195dac707a575a9f7137f09$1
 androidx.compose.foundation.ScrollingLayoutElement:
-    public final boolean isVertical
     static void <clinit>()
     public static androidx.compose.foundation.ScrollingLayoutNode create()
     public static void update$9()
@@ -28145,7 +28300,7 @@ androidx.compose.foundation.layout.Arrangement$SpacedAligned:
     static void <clinit>()
 androidx.compose.foundation.layout.Arrangement$Vertical$-CC
 androidx.compose.foundation.layout.Arrangement$spacedBy$1:
-    public static java.lang.Integer invoke$2()
+    public static java.lang.Integer invoke$3()
 androidx.compose.foundation.layout.Arrangement:
     public static final androidx.compose.foundation.layout.Arrangement$Vertical Bottom
     public static final androidx.compose.foundation.layout.Arrangement INSTANCE
@@ -28615,7 +28770,7 @@ androidx.compose.foundation.text.ContextMenu_androidKt$ContextMenuArea$1$1:
 androidx.compose.foundation.text.ContextMenu_androidKt$ContextMenuArea$2:
     public final void invoke$3()
 androidx.compose.foundation.text.ContextMenu_androidKt$TextItem$1:
-    public static java.lang.String invoke()
+    public static java.lang.String invoke$1()
 androidx.compose.foundation.text.CoreTextFieldKt$CoreTextField$1
 androidx.compose.foundation.text.CoreTextFieldKt$CoreTextField$2$1$1:
     public final java.lang.Boolean invoke()
@@ -29515,7 +29670,7 @@ androidx.compose.foundation.text.selection.SelectionAdjustment:
 androidx.compose.foundation.text.selection.SelectionAdjustmentKt$updateSelectionBoundary$anchorSnappedToWordBoundary$2:
     public static androidx.compose.foundation.text.selection.Selection$AnchorInfo invoke()
 androidx.compose.foundation.text.selection.SelectionAdjustmentKt$updateSelectionBoundary$currentRawLine$2:
-    public static java.lang.Integer invoke$3()
+    public final java.lang.Integer invoke()
 androidx.compose.foundation.text.selection.SelectionGesturesKt$mouseSelection$shouldConsumeUp$1
 androidx.compose.foundation.text.selection.SelectionGesturesKt$mouseSelection$shouldConsumeUp$2:
     public final void invoke$14()
@@ -29963,12 +30118,36 @@ androidx.compose.material3.CardKt$Card$2:
     public final void invoke$3()
 androidx.compose.material3.CardKt$OutlinedCard$1:
     public final void invoke$3()
+androidx.compose.material3.ChipKt$ChipContent$1$1$1:
+    public final void invoke$2()
+androidx.compose.material3.ChipKt$ChipContent$1:
+    public final synthetic kotlin.jvm.functions.Function2 $avatar
+    public final void invoke$3()
+androidx.compose.material3.ChipKt$ChipContent$2:
+    public final synthetic kotlin.jvm.functions.Function2 $avatar
+    public final void invoke$3()
+androidx.compose.material3.ChipKt$FilterChip$1:
+    public final synthetic int $$default
+    public final void invoke$3()
+androidx.compose.material3.ChipKt$SelectableChip$1:
+    public final void invoke$18()
+androidx.compose.material3.ChipKt$SelectableChip$2:
+    public final synthetic kotlin.jvm.functions.Function2 $avatar
+    public final void invoke$3()
+androidx.compose.material3.ChipKt$SelectableChip$3:
+    public final synthetic kotlin.jvm.functions.Function2 $avatar
+    public final void invoke$3()
+androidx.compose.material3.ChipKt:
+    public static final androidx.compose.foundation.layout.PaddingValues AssistChipPadding
+    public static final androidx.compose.foundation.layout.PaddingValues SuggestionChipPadding
+    public static final synthetic float access$getHorizontalElementsPadding$p()
 androidx.compose.material3.ColorScheme:
     public androidx.compose.material3.CardColors defaultCardColorsCached
     static void <clinit>()
     public static long getBackground-0d7_KjU()
     public static androidx.compose.material3.ButtonColors getDefaultButtonColorsCached$material3_release()
     public static androidx.compose.material3.CardColors getDefaultCardColorsCached$material3_release()
+    public static androidx.compose.material3.SelectableChipColors getDefaultFilterChipColorsCached$material3_release()
     public static androidx.compose.material3.IconButtonColors getDefaultIconButtonColorsCached$material3_release()
     public static androidx.compose.material3.NavigationBarItemColors getDefaultNavigationBarItemColorsCached$material3_release()
     public static androidx.compose.material3.CardColors getDefaultOutlinedCardColorsCached$material3_release()
@@ -30013,6 +30192,7 @@ androidx.compose.material3.ColorScheme:
     public static long getTertiaryContainer-0d7_KjU()
     public static void setDefaultButtonColorsCached$material3_release()
     public static void setDefaultCardColorsCached$material3_release()
+    public static void setDefaultFilterChipColorsCached$material3_release()
     public static void setDefaultIconButtonColorsCached$material3_release()
     public static void setDefaultNavigationBarItemColorsCached$material3_release()
     public static void setDefaultOutlinedCardColorsCached$material3_release()
@@ -30062,6 +30242,15 @@ androidx.compose.material3.FabPlacement:
     public static int getLeft()
 androidx.compose.material3.FabPosition$Companion
 androidx.compose.material3.FabPosition
+androidx.compose.material3.FilterChipDefaults:
+    public static final androidx.compose.material3.FilterChipDefaults INSTANCE
+    public static final float IconSize
+    public static androidx.compose.foundation.BorderStroke filterChipBorder-_7El2pE()
+    public static androidx.compose.material3.SelectableChipColors filterChipColors()
+    public static androidx.compose.material3.SelectableChipElevation filterChipElevation-aqJV_2Y()
+    public static androidx.compose.material3.SelectableChipColors getDefaultFilterChipColors$material3_release()
+    public static float getHeight-D9Ej5fM()
+    public static androidx.compose.ui.graphics.Shape getShape()
 androidx.compose.material3.IconButtonColors:
     static void <clinit>()
     public static long containerColor-vNxB06k$material3_release()
@@ -30280,6 +30469,22 @@ androidx.compose.material3.SegmentedButtonKt$interactionZIndex$1:
     public final androidx.compose.ui.layout.MeasureResult invoke-3p2s80s()
 androidx.compose.material3.SegmentedButtonKt:
     public static final synthetic float access$getIconSpacing$p()
+androidx.compose.material3.SelectableChipColors:
+    static void <clinit>()
+    public static long containerColor-WaAFU9c$material3_release()
+    public static long labelColor-WaAFU9c$material3_release()
+    public static long leadingIconContentColor-WaAFU9c$material3_release()
+    public static long trailingIconContentColor-WaAFU9c$material3_release()
+androidx.compose.material3.SelectableChipElevation$animateElevation$1$1$1:
+    public final java.lang.Object emit$1()
+androidx.compose.material3.SelectableChipElevation$animateElevation$1$1:
+    public final java.lang.Object invoke$4()
+androidx.compose.material3.SelectableChipElevation$animateElevation$2$1:
+    public final java.lang.Object invoke$4()
+androidx.compose.material3.SelectableChipElevation:
+    static void <clinit>()
+    public static androidx.compose.runtime.State animateElevation()
+    public static androidx.compose.runtime.State shadowElevation$material3_release()
 androidx.compose.material3.ShapeDefaults:
     public static final androidx.compose.material3.ShapeDefaults INSTANCE
     public static androidx.compose.foundation.shape.CornerBasedShape getExtraLarge()
@@ -30618,7 +30823,6 @@ androidx.compose.material3.tokens.ElevatedCardTokens
 androidx.compose.material3.tokens.ElevationTokens:
     public static final androidx.compose.material3.tokens.ElevationTokens INSTANCE
     public static final float Level2
-    public static final float Level4
     public static final float Level5
     public static float getLevel0-D9Ej5fM()
     public static float getLevel1-D9Ej5fM()
@@ -30652,6 +30856,79 @@ androidx.compose.material3.tokens.FilledButtonTokens:
     public static int getLabelTextColor()
     public static float getPressedContainerElevation-D9Ej5fM()
 androidx.compose.material3.tokens.FilledCardTokens
+androidx.compose.material3.tokens.FilterChipTokens:
+    public static final int ContainerShape
+    public static final int DisabledLabelTextColor
+    public static final float DisabledLabelTextOpacity
+    public static final int DisabledTrailingIconColor
+    public static final float DisabledTrailingIconOpacity
+    public static final float ElevatedContainerElevation
+    public static final int ElevatedDisabledContainerColor
+    public static final float ElevatedDisabledContainerElevation
+    public static final float ElevatedDisabledContainerOpacity
+    public static final float ElevatedFocusContainerElevation
+    public static final float ElevatedHoverContainerElevation
+    public static final float ElevatedPressedContainerElevation
+    public static final int ElevatedSelectedContainerColor
+    public static final int ElevatedUnselectedContainerColor
+    public static final float FlatUnselectedFocusContainerElevation
+    public static final int FlatUnselectedFocusOutlineColor
+    public static final float FlatUnselectedHoverContainerElevation
+    public static final float FlatUnselectedPressedContainerElevation
+    public static final int FocusIndicatorColor
+    public static final androidx.compose.material3.tokens.FilterChipTokens INSTANCE
+    public static final float IconSize
+    public static final int SelectedDraggedLabelTextColor
+    public static final int SelectedDraggedLeadingIconColor
+    public static final int SelectedDraggedTrailingIconColor
+    public static final int SelectedFocusLabelTextColor
+    public static final int SelectedFocusLeadingIconColor
+    public static final int SelectedFocusTrailingIconColor
+    public static final int SelectedHoverLabelTextColor
+    public static final int SelectedHoverLeadingIconColor
+    public static final int SelectedHoverTrailingIconColor
+    public static final int SelectedPressedLabelTextColor
+    public static final int SelectedPressedLeadingIconColor
+    public static final int SelectedPressedTrailingIconColor
+    public static final int SelectedTrailingIconColor
+    public static final int UnselectedDraggedLabelTextColor
+    public static final int UnselectedDraggedLeadingIconColor
+    public static final int UnselectedDraggedTrailingIconColor
+    public static final int UnselectedFocusLabelTextColor
+    public static final int UnselectedFocusLeadingIconColor
+    public static final int UnselectedFocusTrailingIconColor
+    public static final int UnselectedHoverLabelTextColor
+    public static final int UnselectedHoverLeadingIconColor
+    public static final int UnselectedHoverTrailingIconColor
+    public static final int UnselectedPressedLabelTextColor
+    public static final int UnselectedPressedLeadingIconColor
+    public static final int UnselectedPressedTrailingIconColor
+    public static final int UnselectedTrailingIconColor
+    public static float getContainerHeight-D9Ej5fM()
+    public static int getContainerShape()
+    public static int getDisabledLabelTextColor()
+    public static float getDisabledLabelTextOpacity()
+    public static int getDisabledLeadingIconColor()
+    public static float getDisabledLeadingIconOpacity()
+    public static float getDraggedContainerElevation-D9Ej5fM()
+    public static float getFlatContainerElevation-D9Ej5fM()
+    public static int getFlatDisabledSelectedContainerColor()
+    public static float getFlatDisabledSelectedContainerOpacity()
+    public static int getFlatDisabledUnselectedOutlineColor()
+    public static float getFlatDisabledUnselectedOutlineOpacity()
+    public static int getFlatSelectedContainerColor()
+    public static float getFlatSelectedFocusContainerElevation-D9Ej5fM()
+    public static float getFlatSelectedHoverContainerElevation-D9Ej5fM()
+    public static float getFlatSelectedOutlineWidth-D9Ej5fM()
+    public static float getFlatSelectedPressedContainerElevation-D9Ej5fM()
+    public static int getFlatUnselectedOutlineColor()
+    public static float getFlatUnselectedOutlineWidth-D9Ej5fM()
+    public static float getIconSize-D9Ej5fM()
+    public static int getLabelTextFont()
+    public static int getSelectedLabelTextColor()
+    public static int getSelectedLeadingIconColor()
+    public static int getUnselectedLabelTextColor()
+    public static int getUnselectedLeadingIconColor()
 androidx.compose.material3.tokens.IconButtonTokens:
     public static final int DisabledIconColor
     public static final androidx.compose.material3.tokens.IconButtonTokens INSTANCE
@@ -31175,7 +31452,7 @@ androidx.compose.runtime.Composer:
     public abstract void startProvider()
     public abstract void startProviders()
     public abstract void startReplaceGroup(int)
-    public abstract void startReplaceableGroup()
+    public abstract void startReplaceableGroup(int)
     public abstract androidx.compose.runtime.ComposerImpl startRestartGroup(int)
     public abstract void startReusableGroup()
     public abstract void startReusableNode()
@@ -31262,7 +31539,6 @@ androidx.compose.runtime.ComposerImpl:
     public final void startMovableGroup(int,java.lang.Object)
     public final void startProvider()
     public final void startProviders()
-    public final void startReplaceableGroup()
     public final void startReusableGroup()
     public static void startReuseFromRoot()
     public static void updateCachedValue()
@@ -32741,7 +33017,7 @@ androidx.compose.ui.BiasAlignment$Vertical:
 androidx.compose.ui.BiasAlignment:
     static void <clinit>()
 androidx.compose.ui.CombinedModifier$toString$1:
-    public static java.lang.String invoke$1()
+    public static java.lang.String invoke$2()
 androidx.compose.ui.CombinedModifier:
     static void <clinit>()
     public static androidx.compose.ui.Modifier getInner$ui_release()
@@ -36992,11 +37268,11 @@ androidx.compose.ui.semantics.SemanticsProperties$IsDialog$1:
 androidx.compose.ui.semantics.SemanticsProperties$IsPopup$1:
     public final kotlin.Unit invoke()
 androidx.compose.ui.semantics.SemanticsProperties$PaneTitle$1:
-    public final java.lang.String invoke$2()
+    public final java.lang.String invoke$3()
 androidx.compose.ui.semantics.SemanticsProperties$Role$1:
     public static androidx.compose.ui.semantics.Role invoke-qtA-w6s()
 androidx.compose.ui.semantics.SemanticsProperties$TestTag$1:
-    public final java.lang.String invoke$2()
+    public final java.lang.String invoke$3()
 androidx.compose.ui.semantics.SemanticsProperties$Text$1:
     public final java.util.List invoke$1()
 androidx.compose.ui.semantics.SemanticsProperties$TraversalIndex$1:
@@ -38597,7 +38873,7 @@ androidx.compose.ui.window.AndroidDialog_androidKt$DialogLayout$2:
     public final synthetic int $$default
     public final void invoke$3()
 androidx.compose.ui.window.AndroidPopup_androidKt$LocalPopupTestTag$1:
-    public static java.lang.String invoke$3()
+    public final java.lang.String invoke()
 androidx.compose.ui.window.AndroidPopup_androidKt$Popup$2$1:
     public final androidx.compose.runtime.DisposableEffectResult invoke()
 androidx.compose.ui.window.AndroidPopup_androidKt$Popup$3$1:
@@ -38760,6 +39036,15 @@ androidx.concurrent.futures.ResolvableFuture:
     public final boolean set()
 androidx.core.R$id
 androidx.core.R$styleable
+androidx.core.app.ActivityCompat$$InternalSyntheticThrowCCEIfNotNull$14$87f5f3ee39a507a821c0cac2c41ae97972cc2fd75bcf9c839fb098eb6d4675fb$0
+androidx.core.app.ActivityCompat$1$$InternalSyntheticThrowCCEIfNotNull$14$a4650200ea34729841d2251593f2c5754b8e758eca88770c25593bc1ba2598de$0
+androidx.core.app.ActivityCompat$1
+androidx.core.app.ActivityCompat$Api23Impl
+androidx.core.app.ActivityCompat$OnRequestPermissionsResultCallback
+androidx.core.app.ActivityCompat$PermissionCompatDelegate
+androidx.core.app.ActivityCompat$RequestPermissionsRequestCodeValidator
+androidx.core.app.ActivityCompat
+androidx.core.app.ActivityOptionsCompat
 androidx.core.app.ComponentActivity:
     public final androidx.collection.SimpleArrayMap extraDataMap
     public abstract androidx.lifecycle.LifecycleRegistry getLifecycle()
@@ -38857,6 +39142,7 @@ androidx.core.os.BuildCompat:
     public static final int S_EXTENSION_INT
     public static final int T_EXTENSION_INT
 androidx.core.os.BundleApi21ImplKt
+androidx.core.os.BundleCompat
 androidx.core.os.BundleKt
 androidx.core.os.TraceCompat:
     public static java.lang.reflect.Method sAsyncTraceBeginMethod
@@ -39725,13 +40011,13 @@ com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-13$1:
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-14$1:
     public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-15$1:
-    public final void invoke$3()
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-16$1:
     public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-17$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-18$1:
-    public final void invoke$3()
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-19$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-2$1:
@@ -39741,24 +40027,28 @@ com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-20$1:
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-21$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-22$1:
-    public final void invoke$77()
+    public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-23$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-24$1:
-    public final void invoke$3()
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-25$1:
-    public final void invoke$77()
+    public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-26$1:
-    public final void invoke$77()
+    public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-27$1:
-    public final void invoke$3()
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-28$1:
-    public final void invoke$3()
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-29$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-3$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-30$1:
+    public final void invoke$3()
+com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-31$1:
+    public final void invoke$3()
+com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-32$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-4$1:
     public final void invoke$3()
@@ -39780,24 +40070,26 @@ com.turingmirror.moetext.ComposableSingletons$MainActivityKt:
     public static kotlin.jvm.functions.Function3 getLambda-12$app_release()
     public static kotlin.jvm.functions.Function3 getLambda-13$app_release()
     public static kotlin.jvm.functions.Function3 getLambda-14$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-15$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-15$app_release()
     public static kotlin.jvm.functions.Function3 getLambda-16$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-17$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-18$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-18$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-19$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-2$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-20$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-21$app_release()
-    public static kotlin.jvm.functions.Function3 getLambda-22$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-22$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-23$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-24$app_release()
-    public static kotlin.jvm.functions.Function3 getLambda-25$app_release()
-    public static kotlin.jvm.functions.Function3 getLambda-26$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-27$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-28$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-24$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-25$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-26$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-27$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-28$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-29$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-3$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-30$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-31$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-32$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-4$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-5$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-6$app_release()
@@ -39842,15 +40134,19 @@ com.turingmirror.moetext.MainActivityKt$Root$1:
     public final void invoke$3()
 com.turingmirror.moetext.MainActivityKt$Root$2:
     public static void invoke$79()
+com.turingmirror.moetext.MainActivityKt$RulesTab$1$1$1$1$2:
+    public final void invoke$3()
 com.turingmirror.moetext.MainActivityKt$RulesTab$1$1:
     public final void invoke$12()
 com.turingmirror.moetext.MainActivityKt$RulesTab$1$2:
     public final void invoke$12()
-com.turingmirror.moetext.MainActivityKt$RulesTab$1$4:
+com.turingmirror.moetext.MainActivityKt$RulesTab$1$3:
     public final void invoke$12()
 com.turingmirror.moetext.MainActivityKt$RulesTab$1$5:
     public final void invoke$12()
 com.turingmirror.moetext.MainActivityKt$RulesTab$1$6:
+    public final void invoke$12()
+com.turingmirror.moetext.MainActivityKt$RulesTab$1$7:
     public final void invoke$12()
 com.turingmirror.moetext.MainActivityKt$StatusTab$1$2:
     public final void invoke$12()
@@ -39871,6 +40167,22 @@ com.turingmirror.moetext.data.ConfigStore:
     public static java.lang.String encodeReplaces()
     public static com.turingmirror.moetext.engine.PickMode parsePick(android.content.SharedPreferences,java.lang.String)
     public static void save()
+com.turingmirror.moetext.data.PresetCodec:
+    public static final com.turingmirror.moetext.data.PresetCodec INSTANCE
+    static void <clinit>()
+    public static com.turingmirror.moetext.engine.PickMode pick(java.lang.String)
+com.turingmirror.moetext.data.StylePreset:
+    public static final int $stable
+    public static com.turingmirror.moetext.engine.AppConfig getConfig()
+    public static java.lang.String getName()
+com.turingmirror.moetext.data.StylePresets:
+    public static final int $stable
+    public static final com.turingmirror.moetext.data.StylePresets INSTANCE
+    public static com.turingmirror.moetext.data.StylePreset catgirl()
+    public static com.turingmirror.moetext.data.StylePreset classical()
+    public static com.turingmirror.moetext.data.StylePreset emojiRiddle()
+    public static java.util.List getBUILTIN()
+    public static com.turingmirror.moetext.data.StylePreset oracle()
 com.turingmirror.moetext.engine.AppConfig$$InternalSyntheticBackport$1$6b2c32e388472cefad2dd1b577531305ef3a1583b2027d7f338fcee147e1443f$0
 com.turingmirror.moetext.engine.AppConfig$$InternalSyntheticBackport$1$6b2c32e388472cefad2dd1b577531305ef3a1583b2027d7f338fcee147e1443f$1
 com.turingmirror.moetext.engine.AppConfig$$InternalSyntheticBackport$1$6b2c32e388472cefad2dd1b577531305ef3a1583b2027d7f338fcee147e1443f$2
@@ -40052,7 +40364,6 @@ kotlin.collections.ArraysKt___ArraysJvmKt:
 kotlin.collections.ArraysKt___ArraysKt
 kotlin.collections.ArraysUtilJVM
 kotlin.collections.CollectionsKt:
-    public static java.lang.Object lastOrNull(java.util.List)
     public static final void toCollection(java.lang.Iterable,java.util.AbstractCollection)
     public static final java.util.List toMutableList(java.lang.Iterable)
 kotlin.collections.CollectionsKt__CollectionsJVMKt:
@@ -40177,7 +40488,6 @@ kotlin.internal.jdk7.JDK7PlatformImplementations
 kotlin.internal.jdk8.JDK8PlatformImplementations$ReflectSdkVersion:
     public static final kotlin.internal.jdk8.JDK8PlatformImplementations$ReflectSdkVersion INSTANCE
 kotlin.internal.jdk8.JDK8PlatformImplementations
-kotlin.io.ByteStreamsKt
 kotlin.jvm.functions.Function10
 kotlin.jvm.functions.Function11
 kotlin.jvm.functions.Function13
@@ -40253,12 +40563,15 @@ kotlin.math.MathKt:
 kotlin.math.MathKt__MathJVMKt
 kotlin.random.AbstractPlatformRandom:
     public abstract int nextInt()
+    public abstract int nextInt$1()
 kotlin.random.FallbackThreadLocalRandom$implStorage$1:
     public static java.util.Random initialValue()
 kotlin.random.Random$Default:
     public final int nextInt()
+    public final int nextInt$1()
 kotlin.random.Random:
     public abstract int nextInt()
+    public abstract int nextInt$1()
 kotlin.ranges.ClosedFloatRange:
     public final float _endInclusive
     public final float _start
@@ -40305,8 +40618,11 @@ kotlin.sequences.SequenceBuilderIterator:
     public static void setNextStep()
 kotlin.sequences.SequenceScope
 kotlin.sequences.SequencesKt__SequenceBuilderKt$sequence$$inlined$Sequence$1
+kotlin.sequences.SequencesKt__SequencesKt$generateSequence$1:
+    public final synthetic androidx.activity.result.ActivityResultRegistry$generateRandomNumber$1 $nextFunction
 kotlin.sequences.SequencesKt__SequencesKt:
     public static kotlin.sequences.Sequence asSequence(java.util.Iterator)
+    public static final kotlin.sequences.Sequence constrainOnce(kotlin.sequences.Sequence)
 kotlin.sequences.SequencesKt___SequencesKt$filterNotNull$1:
     public final java.lang.Boolean invoke$3()
 kotlin.sequences.SequencesKt___SequencesKt
@@ -40346,6 +40662,8 @@ kotlin.text.RegexKt
 kotlin.text.StringsKt__IndentKt$getIndentFunction$1
 kotlin.text.StringsKt__IndentKt$getIndentFunction$2
 kotlin.text.StringsKt__StringNumberConversionsKt
+kotlin.text.StringsKt__StringsJVMKt:
+    public static java.lang.String decodeToString(byte[])
 kotlin.text.StringsKt__StringsKt$rangesDelimitedBy$2:
     public static kotlin.Pair invoke()
 kotlin.text.StringsKt__StringsKt$splitToSequence$1:
