@@ -145,7 +145,14 @@ private fun Root(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            GlassBottomBar(selected = tab, onSelect = { tab = it })
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Transparent)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                GlassBottomBar(selected = tab, onSelect = { tab = it }, modifier = Modifier.fillMaxWidth())
+            }
         }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
