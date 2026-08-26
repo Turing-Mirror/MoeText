@@ -11,6 +11,7 @@ import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -43,11 +45,12 @@ import com.turingmirror.moetext.ui.theme.GlassBottomBar
 import com.turingmirror.moetext.ui.theme.GlassSegmentRow
 import com.turingmirror.moetext.ui.theme.GlassSurface
 import com.turingmirror.moetext.ui.theme.GlassSwitch
+import com.turingmirror.moetext.ui.theme.glassBackdrop
+import com.turingmirror.moetext.ui.theme.glassContentPadding
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -75,6 +78,7 @@ import com.turingmirror.moetext.engine.TransformEngine
 import com.turingmirror.moetext.update.UpdateChecker
 import com.turingmirror.moetext.update.UpdateInfo
 import com.turingmirror.moetext.ui.theme.MoeTheme
+import dev.chrisbanes.haze.rememberHazeState
 
 private const val PREFS_NAME = "moetext_config"
 private const val KEY_AUTO_UPDATE = "auto_update"
@@ -96,6 +100,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         serviceEnabled.value = isServiceEnabled()
         setContent {
             MoeTheme {
@@ -142,26 +147,29 @@ private fun Root(
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var config by remember { mutableStateOf(initialConfig) }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Transparent)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                GlassBottomBar(selected = tab, onSelect = { tab = it }, modifier = Modifier.fillMaxWidth())
-            }
-        }
-    ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
+    val hazeState = rememberHazeState()
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Box(Modifier.fillMaxSize().glassBackdrop(hazeState)) {
             when (tab) {
                 0 -> StatusTab(enabled, config, onConfig = { config = it }, onOpenAccessibility)
                 1 -> RulesTab(config, onConfig = { config = it }, onPersist = { onPersist(it) })
                 2 -> TestTab(config)
             }
         }
+        GlassBottomBar(
+            selected = tab,
+            onSelect = { tab = it },
+            hazeState = hazeState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+        )
     }
 }
 
@@ -173,7 +181,7 @@ private fun StatusTab(
     onOpenAccessibility: () -> Unit
 ) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(glassContentPadding())
     ) {
         Column {
             Text(
@@ -439,7 +447,7 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
     }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(glassContentPadding())
     ) {
         SectionTitle("风格")
         Spacer(Modifier.height(8.dp))
@@ -662,7 +670,7 @@ private fun AddReplaceDialog(onDismiss: () -> Unit, onConfirm: (String, String) 
 private fun TestTab(config: AppConfig) {
     var input by rememberSaveable { mutableStateOf("今天我很好，你准备好了吗？我们去公园玩吧。") }
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(glassContentPadding())
     ) {
         SectionTitle("实时预览")
         Spacer(Modifier.height(10.dp))
