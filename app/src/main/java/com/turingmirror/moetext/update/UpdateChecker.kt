@@ -18,7 +18,7 @@ data class UpdateInfo(
 object UpdateChecker {
 
     private const val LATEST_URL =
-        "https://cnb.cool/Turing-Mirror/MoeText-Releases/-/raw/main/latest.json"
+        "https://cnb.cool/Turing-Mirror/MoeText-Releases/-/git/raw/main/latest.json"
     private const val FALLBACK_PAGE =
         "https://github.com/Turing-Mirror/MoeText/releases/latest"
     private val MAIN = Handler(Looper.getMainLooper())
