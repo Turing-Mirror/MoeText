@@ -9,7 +9,7 @@ object Stripper {
         var work = text
 
         val tails = buildList {
-            if (config.tailEnabled && config.tailText.isNotBlank()) add(config.tailText.trim())
+            if (config.tailEnabled) addAll(config.tails.map { it.trim() }.filter { it.isNotEmpty() })
             addAll(config.emoticons.filter { it.isNotBlank() })
         }.sortedByDescending { it.length }
 
@@ -18,6 +18,8 @@ object Stripper {
         }
 
         val protections = mutableListOf<String>()
+        if (config.woMenToBenmiaoMen) protections.add("本喵们")
+        if (config.niMenToZhurenMen) protections.add("主人们")
         if (config.woToBenmiao) protections.add("本喵")
         if (config.niToZhuren) protections.add("主人")
         for (r in config.customReplaces) {
@@ -28,8 +30,13 @@ object Stripper {
             work = work.replace(p, "\uE000$i\uE000")
         }
 
-        if (config.sentenceSuffixEnabled && config.sentenceSuffixText.isNotEmpty()) {
-            work = work.replace(config.sentenceSuffixText, "")
+        if (config.sentenceSuffixEnabled) {
+            val suffixPool = config.sentenceSuffixes.map { it.trim() }.filter { it.isNotEmpty() }
+            if (suffixPool.size == 1) {
+                work = work.replace(suffixPool[0], "")
+            } else {
+                for (s in suffixPool) work = work.replace(s, "")
+            }
         }
 
         work = work.replace(DECOR_RUN, " ")

@@ -3,6 +3,7 @@ package com.turingmirror.moetext.data
 import android.content.Context
 import com.turingmirror.moetext.engine.AppConfig
 import com.turingmirror.moetext.engine.CustomReplace
+import com.turingmirror.moetext.engine.PickMode
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -12,13 +13,19 @@ object ConfigStore {
     private const val KEY_REALTIME = "realtime_mode"
     private const val KEY_WO = "wo_to_benmiao"
     private const val KEY_NI = "ni_to_zhuren"
+    private const val KEY_WOMEN = "women_to_benmiaomen"
+    private const val KEY_NIMEN = "nimen_to_zhurenmen"
     private const val KEY_SUFFIX_ENABLED = "suffix_enabled"
-    private const val KEY_SUFFIX_TEXT = "suffix_text"
+    private const val KEY_SUFFIX_LIST = "suffix_list"
+    private const val KEY_SUFFIX_PICK = "suffix_pick"
     private const val KEY_TAIL_ENABLED = "tail_enabled"
-    private const val KEY_TAIL_TEXT = "tail_text"
+    private const val KEY_TAIL_LIST = "tail_list"
+    private const val KEY_TAIL_PICK = "tail_pick"
     private const val KEY_EMOTICON_ENABLED = "emoticon_enabled"
     private const val KEY_EMOTICONS = "emoticons"
     private const val KEY_CUSTOM_REPLACES = "custom_replaces"
+    private const val LEGACY_KEY_SUFFIX_TEXT = "suffix_text"
+    private const val LEGACY_KEY_TAIL_TEXT = "tail_text"
 
     fun load(ctx: Context): AppConfig {
         val sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -27,10 +34,14 @@ object ConfigStore {
                 realtimeMode = sp.getBoolean(KEY_REALTIME, false),
                 woToBenmiao = sp.getBoolean(KEY_WO, true),
                 niToZhuren = sp.getBoolean(KEY_NI, false),
+                woMenToBenmiaoMen = sp.getBoolean(KEY_WOMEN, false),
+                niMenToZhurenMen = sp.getBoolean(KEY_NIMEN, false),
                 sentenceSuffixEnabled = sp.getBoolean(KEY_SUFFIX_ENABLED, true),
-                sentenceSuffixText = sp.getString(KEY_SUFFIX_TEXT, "喵") ?: "喵",
+                sentenceSuffixes = parseList(sp, KEY_SUFFIX_LIST, LEGACY_KEY_SUFFIX_TEXT, listOf("喵")),
+                sentenceSuffixPick = parsePick(sp, KEY_SUFFIX_PICK, PickMode.SEQUENTIAL),
                 tailEnabled = sp.getBoolean(KEY_TAIL_ENABLED, false),
-                tailText = sp.getString(KEY_TAIL_TEXT, "") ?: "",
+                tails = parseList(sp, KEY_TAIL_LIST, LEGACY_KEY_TAIL_TEXT, emptyList()),
+                tailPick = parsePick(sp, KEY_TAIL_PICK, PickMode.SEQUENTIAL),
                 emoticonEnabled = sp.getBoolean(KEY_EMOTICON_ENABLED, true),
                 emoticons = parseEmoticons(sp.getString(KEY_EMOTICONS, "")),
                 customReplaces = parseReplaces(sp.getString(KEY_CUSTOM_REPLACES, ""))
@@ -46,15 +57,35 @@ object ConfigStore {
             .putBoolean(KEY_REALTIME, config.realtimeMode)
             .putBoolean(KEY_WO, config.woToBenmiao)
             .putBoolean(KEY_NI, config.niToZhuren)
+            .putBoolean(KEY_WOMEN, config.woMenToBenmiaoMen)
+            .putBoolean(KEY_NIMEN, config.niMenToZhurenMen)
             .putBoolean(KEY_SUFFIX_ENABLED, config.sentenceSuffixEnabled)
-            .putString(KEY_SUFFIX_TEXT, config.sentenceSuffixText)
+            .putString(KEY_SUFFIX_LIST, config.sentenceSuffixes.joinToString("\n"))
+            .putString(KEY_SUFFIX_PICK, config.sentenceSuffixPick.name)
             .putBoolean(KEY_TAIL_ENABLED, config.tailEnabled)
-            .putString(KEY_TAIL_TEXT, config.tailText)
+            .putString(KEY_TAIL_LIST, config.tails.joinToString("\n"))
+            .putString(KEY_TAIL_PICK, config.tailPick.name)
             .putBoolean(KEY_EMOTICON_ENABLED, config.emoticonEnabled)
             .putString(KEY_EMOTICONS, config.emoticons.joinToString("\n"))
             .putString(KEY_CUSTOM_REPLACES, encodeReplaces(config.customReplaces))
             .apply()
     }
+
+    private fun parseList(sp: android.content.SharedPreferences, key: String, legacyKey: String, default: List<String>): List<String> {
+        val raw = sp.getString(key, null)
+        if (raw != null) {
+            return raw.split("\n").map { it.trim() }.filter { it.isNotEmpty() }.ifEmpty { default }
+        }
+        val legacy = sp.getString(legacyKey, null)?.trim()
+        return if (legacy.isNullOrEmpty()) default else listOf(legacy)
+    }
+
+    private fun parsePick(sp: android.content.SharedPreferences, key: String, default: PickMode): PickMode =
+        try {
+            sp.getString(key, null)?.let { PickMode.valueOf(it) } ?: default
+        } catch (e: Exception) {
+            default
+        }
 
     private fun parseEmoticons(raw: String?): List<String> {
         if (raw.isNullOrBlank()) return AppConfig.BUILTIN_EMOTICONS

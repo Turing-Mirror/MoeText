@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.turingmirror.moetext"
-    android:versionCode="1"
-    android:versionName="1.0.0" >
+    android:versionCode="2"
+    android:versionName="1.1.0" >
 
     <uses-sdk
         android:minSdkVersion="23"
         android:targetSdkVersion="35" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <permission
         android:name="com.turingmirror.moetext.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"

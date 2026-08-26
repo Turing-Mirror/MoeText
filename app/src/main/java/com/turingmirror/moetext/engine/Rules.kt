@@ -12,14 +12,20 @@ data class CustomReplace(
     val to: String = ""
 )
 
+enum class PickMode { SEQUENTIAL, RANDOM }
+
 data class AppConfig(
     val realtimeMode: Boolean = false,
     val woToBenmiao: Boolean = true,
     val niToZhuren: Boolean = false,
+    val woMenToBenmiaoMen: Boolean = false,
+    val niMenToZhurenMen: Boolean = false,
     val sentenceSuffixEnabled: Boolean = true,
-    val sentenceSuffixText: String = "喵",
+    val sentenceSuffixes: List<String> = listOf("喵"),
+    val sentenceSuffixPick: PickMode = PickMode.SEQUENTIAL,
     val tailEnabled: Boolean = false,
-    val tailText: String = "",
+    val tails: List<String> = emptyList(),
+    val tailPick: PickMode = PickMode.SEQUENTIAL,
     val emoticonEnabled: Boolean = true,
     val emoticons: List<String> = BUILTIN_EMOTICONS,
     val customReplaces: List<CustomReplace> = emptyList()
@@ -46,8 +52,19 @@ class ReplaceRule(private val from: String, private val to: String) : TransformR
         if (from.isEmpty()) input else input.replace(from, to)
 }
 
-class SentenceSuffixRule(private val suffix: String) : TransformRule {
+class SentenceSuffixRule(
+    private val candidates: List<String>,
+    private val pickMode: PickMode,
+    private val seqIndex: Int
+) : TransformRule {
+
     override fun transform(input: String): String {
+        val suffix = pickFrom(candidates, pickMode, seqIndex)
+        if (suffix.isEmpty()) return input
+        return applySuffix(input, suffix)
+    }
+
+    private fun applySuffix(input: String, suffix: String): String {
         if (suffix.isEmpty()) return input
         val regex = Regex("([，,。！!？?\\s]+)")
         val sb = StringBuilder()
@@ -71,11 +88,30 @@ class SentenceSuffixRule(private val suffix: String) : TransformRule {
         val result = sb.toString().trim()
         return result.ifEmpty { input + suffix }
     }
+
+    companion object {
+        fun pickFrom(pool: List<String>, pickMode: PickMode, seqIndex: Int): String {
+            val cleaned = pool.map { it.trim() }.filter { it.isNotEmpty() }
+            if (cleaned.isEmpty()) return ""
+            return when (pickMode) {
+                PickMode.SEQUENTIAL -> cleaned[Math.floorMod(seqIndex, cleaned.size)]
+                PickMode.RANDOM -> cleaned[RNG.nextInt(cleaned.size)]
+            }
+        }
+
+        private val RNG = Random()
+    }
 }
 
-class TailRule(private val text: String) : TransformRule {
-    override fun transform(input: String): String =
-        if (text.isEmpty()) input else "$input $text"
+class TailRule(
+    private val candidates: List<String>,
+    private val pickMode: PickMode,
+    private val seqIndex: Int
+) : TransformRule {
+    override fun transform(input: String): String {
+        val picked = SentenceSuffixRule.pickFrom(candidates, pickMode, seqIndex)
+        return if (picked.isEmpty()) input else "$input $picked"
+    }
 }
 
 class RandomTailRule(private val pool: List<String>) : TransformRule {

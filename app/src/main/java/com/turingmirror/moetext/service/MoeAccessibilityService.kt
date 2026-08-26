@@ -29,6 +29,8 @@ class MoeAccessibilityService : AccessibilityService() {
     private var lastTarget = ""
     private var lastWriteAt = 0L
     private var busy = false
+    private var seqIndex = 0
+    private var cachedInput: AccessibilityNodeInfo? = null
 
     override fun onServiceConnected() {
         serviceInfo = AccessibilityServiceInfo().apply {
@@ -66,7 +68,34 @@ class MoeAccessibilityService : AccessibilityService() {
         lastTarget = ""
         lastWriteAt = 0L
         busy = false
+        seqIndex = 0
+        dropCachedInput()
         config = ConfigStore.load(this)
+    }
+
+    private fun dropCachedInput() {
+        cachedInput?.let { node ->
+            try {
+                node.recycle()
+            } catch (e: Exception) {
+            }
+        }
+        cachedInput = null
+    }
+
+    private fun inputNode(): AccessibilityNodeInfo? {
+        cachedInput?.let { cached ->
+            try {
+                if (cached.text != null) return cached
+            } catch (e: Exception) {
+            }
+            dropCachedInput()
+        }
+        val root = rootInActiveWindow ?: return null
+        val node = findNodeById(root, ID_INPUT) ?: findEditable(root)
+        root.recycle()
+        cachedInput = node
+        return node
     }
 
     private fun handleTextChanged() {
@@ -80,12 +109,8 @@ class MoeAccessibilityService : AccessibilityService() {
     private fun process(allowRandomTail: Boolean) {
         if (busy) return
         busy = true
-        var node: AccessibilityNodeInfo? = null
         try {
-            val root = rootInActiveWindow ?: return
-            node = findNodeById(root, ID_INPUT) ?: findEditable(root)
-            root.recycle()
-            node ?: return
+            val node = inputNode() ?: return
 
             val raw = node.text?.toString()?.trim() ?: ""
             if (raw.isEmpty()) {
@@ -101,7 +126,8 @@ class MoeAccessibilityService : AccessibilityService() {
             recoverOriginal(raw)
             if (userOriginal.isEmpty()) return
 
-            val target = TransformEngine.transform(userOriginal, config, allowRandomTail)
+            val target = TransformEngine.transform(userOriginal, config, allowRandomTail, seqIndex)
+            seqIndex++
             if (target != raw) {
                 if (setText(node, target)) {
                     lastTarget = target
@@ -114,7 +140,6 @@ class MoeAccessibilityService : AccessibilityService() {
             Log.d(TAG, "process failed", e)
         } finally {
             busy = false
-            node?.recycle()
         }
     }
 
@@ -132,12 +157,12 @@ class MoeAccessibilityService : AccessibilityService() {
     }
 
     private fun peekInputText(): String? {
-        val root = rootInActiveWindow ?: return null
-        val node = findNodeById(root, ID_INPUT) ?: findEditable(root)
-        root.recycle()
-        val text = node?.text?.toString()?.trim()
-        node?.recycle()
-        return text
+        val node = inputNode() ?: return null
+        return try {
+            node.text?.toString()?.trim()
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun findNodeById(node: AccessibilityNodeInfo, id: String): AccessibilityNodeInfo? {

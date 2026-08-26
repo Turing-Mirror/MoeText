@@ -48,6 +48,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -64,8 +65,23 @@ import androidx.compose.ui.unit.sp
 import com.turingmirror.moetext.data.ConfigStore
 import com.turingmirror.moetext.engine.AppConfig
 import com.turingmirror.moetext.engine.CustomReplace
+import com.turingmirror.moetext.engine.PickMode
 import com.turingmirror.moetext.engine.TransformEngine
+import com.turingmirror.moetext.update.UpdateChecker
+import com.turingmirror.moetext.update.UpdateInfo
 import com.turingmirror.moetext.ui.theme.MoeTheme
+
+private const val PREFS_NAME = "moetext_config"
+private const val KEY_AUTO_UPDATE = "auto_update"
+
+private fun autoUpdateEnabled(context: Context): Boolean =
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getBoolean(KEY_AUTO_UPDATE, true)
+
+private fun setAutoUpdate(context: Context, value: Boolean) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit().putBoolean(KEY_AUTO_UPDATE, value).apply()
+}
 
 private val NotifyAmber = Color(0xFFE8A91C)
 
@@ -255,6 +271,88 @@ private fun StatusTab(
             LinkRow("小红书 @图灵镜", "https://www.xiaohongshu.com/user/profile/65f56bf1000000000b00e094")
             QQGroupRow()
         }
+
+        Spacer(Modifier.height(22.dp))
+        SectionTitle("关于")
+        Spacer(Modifier.height(8.dp))
+        AboutPanel()
+    }
+}
+
+@Composable
+private fun AboutPanel() {
+    val context = LocalContext.current
+    var busy by remember { mutableStateOf(false) }
+    var status by remember {
+        mutableStateOf("当前版本 v" + UpdateChecker.currentVersionName(context))
+    }
+    var offer by remember { mutableStateOf<UpdateInfo?>(null) }
+    var auto by remember { mutableStateOf(autoUpdateEnabled(context)) }
+
+    fun performCheck() {
+        busy = true
+        status = "检查中…"
+        UpdateChecker.check(context) { result ->
+            busy = false
+            result.fold(
+                onSuccess = { info ->
+                    if (info == null) status = "已是最新版本"
+                    else {
+                        status = "发现新版本 v${info.versionName}"
+                        offer = info
+                    }
+                },
+                onFailure = { status = "检查失败（网络异常）" }
+            )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (auto) performCheck()
+    }
+
+    PanelCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "MoeText v" + UpdateChecker.currentVersionName(context),
+                    fontSize = 14.sp
+                )
+                Text(status, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            TextButton(onClick = { performCheck() }, enabled = !busy) {
+                Text(if (busy) "检查中…" else "检查更新")
+            }
+        }
+        SwitchRow("启动时自动检查更新", auto) {
+            setAutoUpdate(context, it)
+            auto = it
+        }
+    }
+
+    offer?.let { info ->
+        AlertDialog(
+            onDismissRequest = { offer = null },
+            title = { Text("发现新版本 v${info.versionName}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (info.changelog.isEmpty()) {
+                        Text("性能优化与问题修复。")
+                    } else {
+                        info.changelog.forEach { line -> Text("· $line", fontSize = 13.sp) }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    openUrl(context, info.releasePage)
+                    offer = null
+                }) { Text("前往下载") }
+            },
+            dismissButton = {
+                TextButton(onClick = { offer = null }) { Text("以后再说") }
+            }
+        )
     }
 }
 
@@ -298,7 +396,18 @@ private fun QQGroupRow() {
 private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist: (AppConfig) -> Unit) {
     val context = LocalContext.current
     var showAddDialog by remember { mutableStateOf(false) }
-    var emoticonText by remember { mutableStateOf(config.emoticons.joinToString("\n")) }
+
+    fun lines(raw: String) = raw.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+
+    var suffixRaw by remember { mutableStateOf(config.sentenceSuffixes.joinToString("\n")) }
+    var tailRaw by remember { mutableStateOf(config.tails.joinToString("\n")) }
+    var emoticonRaw by remember { mutableStateOf(config.emoticons.joinToString("\n")) }
+
+    fun merged(): AppConfig = config.copy(
+        sentenceSuffixes = lines(suffixRaw).ifEmpty { listOf("喵") },
+        tails = lines(tailRaw),
+        emoticons = lines(emoticonRaw).ifEmpty { AppConfig.BUILTIN_EMOTICONS }
+    )
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)
@@ -307,6 +416,10 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         Spacer(Modifier.height(8.dp))
         PanelCard {
             SwitchRow("我 → 本喵", config.woToBenmiao) { onConfig(config.copy(woToBenmiao = it)) }
+            Spacer(Modifier.height(4.dp))
+            SwitchRow("我们 → 本喵们", config.woMenToBenmiaoMen) { onConfig(config.copy(woMenToBenmiaoMen = it)) }
+            Spacer(Modifier.height(4.dp))
+            SwitchRow("你们 → 主人们", config.niMenToZhurenMen) { onConfig(config.copy(niMenToZhurenMen = it)) }
             Spacer(Modifier.height(4.dp))
             SwitchRow("你 → 主人", config.niToZhuren) { onConfig(config.copy(niToZhuren = it)) }
         }
@@ -359,32 +472,43 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
             }
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
-                value = config.sentenceSuffixText,
-                onValueChange = { onConfig(config.copy(sentenceSuffixText = it)) },
-                label = { Text("后缀文字") },
-                singleLine = true,
+                value = suffixRaw,
+                onValueChange = { suffixRaw = it },
+                label = { Text("后缀库（每行一个，顺序轮换或随机抽取）") },
+                placeholder = { Text("喵\n nya~") },
+                minLines = 2,
+                maxLines = 5,
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(Modifier.height(8.dp))
+            PickModeRow(config.sentenceSuffixPick) {
+                onConfig(merged().copy(sentenceSuffixPick = it))
+            }
         }
 
         Spacer(Modifier.height(16.dp))
         SectionTitle("固定尾缀")
         Spacer(Modifier.height(8.dp))
         PanelCard {
-            SwitchRow("在整条消息末尾追加固定文字", config.tailEnabled) {
+            SwitchRow("在整条消息末尾追加尾缀", config.tailEnabled) {
                 onConfig(config.copy(tailEnabled = it))
             }
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
-                value = config.tailText,
-                onValueChange = { onConfig(config.copy(tailText = it)) },
-                label = { Text("尾缀内容") },
-                placeholder = { Text("例如：哦齁齁齁❤️") },
-                singleLine = true,
+                value = tailRaw,
+                onValueChange = { tailRaw = it },
+                label = { Text("尾缀库（每行一个，顺序轮换或随机抽取）") },
+                placeholder = { Text("哦齁齁齁❤️\n 喵呜～") },
+                minLines = 2,
+                maxLines = 5,
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth()
             )
+            Spacer(Modifier.height(8.dp))
+            PickModeRow(config.tailPick) {
+                onConfig(merged().copy(tailPick = it))
+            }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -396,12 +520,8 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
             }
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
-                value = emoticonText,
-                onValueChange = {
-                    emoticonText = it
-                    val list = it.split("\n").map { l -> l.trim() }.filter { l -> l.isNotEmpty() }
-                    onConfig(config.copy(emoticons = list.ifEmpty { AppConfig.BUILTIN_EMOTICONS }))
-                },
+                value = emoticonRaw,
+                onValueChange = { emoticonRaw = it },
                 label = { Text("颜文字库（每行一个，留空使用内置库）") },
                 minLines = 3,
                 maxLines = 6,
@@ -413,7 +533,9 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         Spacer(Modifier.height(22.dp))
         Button(
             onClick = {
-                onPersist(config)
+                val finalConfig = merged()
+                onConfig(finalConfig)
+                onPersist(finalConfig)
                 Toast.makeText(context, "设置已保存", Toast.LENGTH_SHORT).show()
             },
             shape = RoundedCornerShape(8.dp),
@@ -432,6 +554,22 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun PickModeRow(current: PickMode, onChange: (PickMode) -> Unit) {
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        SegmentedButton(
+            selected = current == PickMode.SEQUENTIAL,
+            onClick = { onChange(PickMode.SEQUENTIAL) },
+            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+        ) { Text("顺序轮换") }
+        SegmentedButton(
+            selected = current == PickMode.RANDOM,
+            onClick = { onChange(PickMode.RANDOM) },
+            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+        ) { Text("随机抽取") }
     }
 }
 
