@@ -39679,32 +39679,38 @@ com.google.common.util.concurrent.ListenableFuture
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-1$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-10$1:
-    public final void invoke$3()
+    public final void invoke$12()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-11$1:
     public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-12$1:
-    public final void invoke$3()
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-13$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-14$1:
-    public final void invoke$3()
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-15$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-16$1:
-    public final void invoke$77()
-com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-17$1:
-    public final void invoke$77()
-com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-18$1:
-    public final void invoke$77()
-com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-19$1:
     public final void invoke$3()
+com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-17$1:
+    public final void invoke$3()
+com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-18$1:
+    public final void invoke$3()
+com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-19$1:
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-2$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-20$1:
-    public final void invoke$3()
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-21$1:
-    public final void invoke$3()
+    public final void invoke$77()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-22$1:
+    public final void invoke$3()
+com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-23$1:
+    public final void invoke$3()
+com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-24$1:
+    public final void invoke$3()
+com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-25$1:
     public final void invoke$3()
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-3$1:
     public final void invoke$3()
@@ -39723,20 +39729,23 @@ com.turingmirror.moetext.ComposableSingletons$MainActivityKt$lambda-9$1:
 com.turingmirror.moetext.ComposableSingletons$MainActivityKt:
     public static final com.turingmirror.moetext.ComposableSingletons$MainActivityKt INSTANCE
     public static kotlin.jvm.functions.Function2 getLambda-1$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-10$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-10$app_release()
     public static kotlin.jvm.functions.Function3 getLambda-11$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-12$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-12$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-13$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-14$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-14$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-15$app_release()
-    public static kotlin.jvm.functions.Function3 getLambda-16$app_release()
-    public static kotlin.jvm.functions.Function3 getLambda-17$app_release()
-    public static kotlin.jvm.functions.Function3 getLambda-18$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-19$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-16$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-17$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-18$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-19$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-2$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-20$app_release()
-    public static kotlin.jvm.functions.Function2 getLambda-21$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-20$app_release()
+    public static kotlin.jvm.functions.Function3 getLambda-21$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-22$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-23$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-24$app_release()
+    public static kotlin.jvm.functions.Function2 getLambda-25$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-3$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-4$app_release()
     public static kotlin.jvm.functions.Function2 getLambda-5$app_release()
@@ -39784,7 +39793,7 @@ com.turingmirror.moetext.MainActivityKt$StatusTab$1$4:
 com.turingmirror.moetext.MainActivityKt$TestTab$1$2:
     public final void invoke$12()
 com.turingmirror.moetext.MainActivityKt:
-    public static final void RulesTab$lambda$14(androidx.compose.runtime.MutableState,boolean)
+    public static final void RulesTab$lambda$22(androidx.compose.runtime.MutableState,boolean)
     public static final void access$Root$lambda$3(androidx.compose.runtime.MutableIntState,int)
 com.turingmirror.moetext.data.ConfigStore:
     public static final com.turingmirror.moetext.data.ConfigStore INSTANCE

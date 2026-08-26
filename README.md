@@ -2,7 +2,13 @@
 
 基于 Android 无障碍服务的聊天文本自动美化工具：在你发出消息之前，按你定义的规则链自动改写 QQ 聊天输入框中的内容。
 
-由 Turing Mirror 开发，MIT 协议开源。
+由 [图灵镜 Turing Mirror](https://github.com/Turing-Mirror) 开发维护
+
+[![Licence](https://img.shields.io/badge/LICENSE-MIT-green.svg?style=flat-square)](./LICENSE)
+
+**下载**　[GitHub Releases](https://github.com/Turing-Mirror/MoeText/releases)
+
+**社媒**　[哔哩哔哩 @图灵镜](https://space.bilibili.com/3546871148579062)　·　[抖音 @图灵镜](https://v.douyin.com/6NxXcrKK9cc)（抖音号 `TuringMirror`）　·　[小红书 @图灵镜](https://www.xiaohongshu.com/user/profile/65f56bf1000000000b00e094)（小红书号 `TuringMirror`）　·　QQ 群 @图灵镜社区（群号 `1077458748`）
 
 ## 功能
 

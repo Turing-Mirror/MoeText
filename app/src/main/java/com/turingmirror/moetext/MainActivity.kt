@@ -1,7 +1,10 @@
 package com.turingmirror.moetext
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
@@ -241,6 +244,53 @@ private fun StatusTab(
                 modifier = Modifier.padding(14.dp)
             )
         }
+
+        Spacer(Modifier.height(22.dp))
+        SectionTitle("社区")
+        Spacer(Modifier.height(8.dp))
+        PanelCard {
+            LinkRow("GitHub 仓库", "https://github.com/Turing-Mirror/MoeText")
+            LinkRow("哔哩哔哩 @图灵镜", "https://space.bilibili.com/3546871148579062")
+            LinkRow("抖音 @图灵镜", "https://v.douyin.com/6NxXcrKK9cc")
+            LinkRow("小红书 @图灵镜", "https://www.xiaohongshu.com/user/profile/65f56bf1000000000b00e094")
+            QQGroupRow()
+        }
+    }
+}
+
+private fun openUrl(context: Context, url: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    } catch (e: Exception) {
+        Toast.makeText(context, "无法打开链接", Toast.LENGTH_SHORT).show()
+    }
+}
+
+@Composable
+private fun LinkRow(label: String, url: String) {
+    val context = LocalContext.current
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        TextButton(onClick = { openUrl(context, url) }) { Text("前往") }
+    }
+}
+
+@Composable
+private fun QQGroupRow() {
+    val context = LocalContext.current
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("QQ 群 @图灵镜社区（1077458748）", fontSize = 14.sp, modifier = Modifier.weight(1f))
+        TextButton(onClick = {
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newPlainText("qq_group", "1077458748"))
+            Toast.makeText(context, "群号已复制", Toast.LENGTH_SHORT).show()
+        }) { Text("复制群号") }
     }
 }
 
