@@ -28,7 +28,6 @@ class MoeAccessibilityService : AccessibilityService() {
         private const val SEND_ID_TOKEN = "send"
         private const val REALTIME_DEBOUNCE_MS = 110L
         private const val RECONCILE_ROUNDS = 4
-        private val TRIGGER_ENDS = setOf('。', '！', '!', '？', '?')
 
         private val LOG_LOCK = Any()
         private val LOG_RING = ArrayDeque<String>()
@@ -170,50 +169,57 @@ class MoeAccessibilityService : AccessibilityService() {
     private fun requestWork(forceTail: Boolean) {
         if (workRunning) {
             workRequestedWhileRunning = true
+            val grew = !queuedForceTail && forceTail
             queuedForceTail = queuedForceTail || forceTail
+            diag("req: busy ft=$forceTail grew=$grew")
             return
         }
         if (workQueued) {
+            val grew = !queuedForceTail && forceTail
             queuedForceTail = queuedForceTail || forceTail
+            diag("req: queued ft=$forceTail grew=$grew")
             return
         }
         workQueued = true
-        val delay = if (config.realtimeMode && !forceTail) REALTIME_DEBOUNCE_MS else 0L
+        diag("req: new ft=$forceTail")
+        val delay = if (!forceTail) REALTIME_DEBOUNCE_MS else 0L
         mainHandler.postDelayed({
             workQueued = false
-            runWorkCycle(forceTail = queuedForceTail.also { queuedForceTail = false })
+            val ft = queuedForceTail.also { queuedForceTail = false }
+            diag("exec: fire ft=$ft")
+            runWorkCycle(forceTail = ft)
         }, delay)
     }
 
     private fun runWorkCycle(forceTail: Boolean) {
-        if (workRunning) return
+        if (workRunning) {
+            diag("BUSY-DROP ft=$forceTail")
+            return
+        }
         workRunning = true
         try {
             if (configDirty) {
                 reloadConfig()
                 configDirty = false
             }
-            if (forceTail) {
-                reconcile(forceTail)
+            val node = inputNode()
+            var current: String? = try {
+                node?.let { currentText(it) }
+            } catch (t: Throwable) {
+                null
+            }
+            if (current.isNullOrEmpty()) {
+                val hint = lastObservedText.trim()
+                if (hint.isNotEmpty()) {
+                    current = hint
+                    diag("cur: evtHint len=${hint.length}")
+                }
+            }
+            if (current.isNullOrEmpty()) {
+                diag("cur: empty (node=${node != null})")
                 return
             }
-            val viaNode = peekInputText()
-            when {
-                !viaNode.isNullOrEmpty() -> {
-                    hasFreshInputHint = true
-                    lastObservedText = viaNode
-                    if (viaNode.last() in TRIGGER_ENDS || config.realtimeMode) {
-                        reconcile(forceTail)
-                    } else {
-                        diag("skip: punct curLen=${viaNode.length}")
-                    }
-                }
-                config.realtimeMode -> reconcile(forceTail)
-                hasFreshInputHint && lastObservedText.isNotBlank() ->
-                    if (lastObservedText.last() in TRIGGER_ENDS) reconcile(forceTail)
-                    else diag("skip: punct hintOnly len=${lastObservedText.length}")
-                else -> diag("skip: noread mode=${if (config.realtimeMode) "rt" else "punct"}")
-            }
+            node?.let { reconcileNode(it, current, forceTail) }
         } catch (t: Throwable) {
             diag("cycle fail: ${t.javaClass.simpleName}")
         } finally {
@@ -253,26 +259,10 @@ class MoeAccessibilityService : AccessibilityService() {
         requestWork(forceTail = true)
     }
 
-    private fun reconcile(forceTail: Boolean) {
-        val node = inputNode() ?: run {
-            diag("rec: no node")
-            return
-        }
+    private fun reconcileNode(node: AccessibilityNodeInfo, initial: String, forceTail: Boolean) {
+        var current = initial
         var advanced = false
         for (round in 0 until RECONCILE_ROUNDS) {
-            val nodeText = currentText(node)
-            var current = nodeText
-            if (current.isNullOrEmpty()) {
-                val hint = lastObservedText.trim()
-                if (hint.isNotEmpty()) {
-                    current = hint
-                    diag("cur: evtHint len=${hint.length}")
-                }
-            }
-            if (current.isNullOrEmpty()) {
-                diag("cur: empty r$round")
-                return
-            }
             val sameAsTarget = current == lastTarget
             if (sameAsTarget && !forceTail) return
             recoverOriginal(current)
@@ -303,6 +293,7 @@ class MoeAccessibilityService : AccessibilityService() {
             }
             if (fresh == null || fresh == target) return
             lastObservedText = fresh
+            current = fresh
         }
     }
 
@@ -339,11 +330,6 @@ class MoeAccessibilityService : AccessibilityService() {
         node.text?.toString()?.trim()
     } catch (t: Throwable) {
         null
-    }
-
-    private fun peekInputText(): String? {
-        val node = inputNode() ?: return null
-        return currentText(node)
     }
 
     private fun dropCachedInput() {

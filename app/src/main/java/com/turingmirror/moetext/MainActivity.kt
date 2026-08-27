@@ -288,7 +288,7 @@ private fun StatusTab(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "标点触发：句子写完时即时美化，点「发送」时强制整条处理（推荐）\n实时处理：每输入一字立即处理",
+            "两种模式均为边打边改、消息发出前已是喵文。\n区别：标点触发的随机颜文字仅在点发送时追加，实时处理随输入追加",
             fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
