@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -66,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -272,6 +274,8 @@ private fun StatusTab(
 
         Spacer(Modifier.height(14.dp))
         CompatPanel(onRequestBattery)
+        Spacer(Modifier.height(14.dp))
+        ServiceDiagPanel(enabled)
 
         Spacer(Modifier.height(18.dp))
         SectionTitle("处理模式")
@@ -338,6 +342,53 @@ private fun CompatPanel(onRequestBattery: () -> Unit) {
         Spacer(Modifier.height(10.dp))
         TextButton(onClick = onRequestBattery) {
             Text("申请忽略电池优化", fontSize = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun ServiceDiagPanel(serviceEnabled: Boolean) {
+    var lines by remember { mutableStateOf(listOf<String>()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            lines = com.turingmirror.moetext.service.MoeAccessibilityService.snapshotLogs()
+            kotlinx.coroutines.delay(500)
+        }
+    }
+    PanelCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "服务诊断",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                if (serviceEnabled) "运行中" else "未开启",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "在 QQ 中尝试输入后，下方日志应持续新增。若始终只有 connected，说明本机未放行 QQ 事件；若出现 node: root null，说明窗口内容读取受限。",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(8.dp))
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = 220.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            if (lines.isEmpty()) {
+                Text("（暂无日志）", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                lines.asReversed().forEach { line ->
+                    Text(line, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                }
+            }
         }
     }
 }

@@ -2,6 +2,8 @@ package com.turingmirror.moetext.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -9,6 +11,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import com.turingmirror.moetext.data.ConfigStore
 import com.turingmirror.moetext.engine.AppConfig
 import com.turingmirror.moetext.engine.Stripper
@@ -25,6 +28,20 @@ class MoeAccessibilityService : AccessibilityService() {
         private const val REALTIME_DEBOUNCE_MS = 110L
         private const val RECONCILE_ROUNDS = 4
         private val TRIGGER_ENDS = setOf('。', '！', '!', '？', '?')
+
+        private val LOG_LOCK = Any()
+        private val LOG_RING = ArrayDeque<String>()
+        private const val LOG_CAP = 60
+
+        fun snapshotLogs(): List<String> = synchronized(LOG_LOCK) { LOG_RING.toList() }
+
+        private fun diag(line: String) {
+            synchronized(LOG_LOCK) {
+                LOG_RING.addLast(line)
+                while (LOG_RING.size > LOG_CAP) LOG_RING.removeFirst()
+            }
+            Log.d(TAG, line)
+        }
     }
 
     private var config: AppConfig = AppConfig()
@@ -40,6 +57,7 @@ class MoeAccessibilityService : AccessibilityService() {
     private var queuedForceTail = false
 
     override fun onServiceConnected() {
+        diag("connected")
         try {
             serviceInfo = serviceInfo.apply {
                 eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
@@ -48,7 +66,8 @@ class MoeAccessibilityService : AccessibilityService() {
                 feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
                 flags = AccessibilityServiceInfo.DEFAULT or
                     AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
-                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
+                    AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
                 notificationTimeout = 80
                 packageNames = arrayOf(PKG_QQ, PKG_QQI)
             }
@@ -67,12 +86,15 @@ class MoeAccessibilityService : AccessibilityService() {
             val pkg = event.packageName?.toString() ?: return
             if (pkg != PKG_QQ && pkg != PKG_QQI) return
             when (event.eventType) {
-                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> resetSession()
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                    diag("evt winState $pkg")
+                    resetSession()
+                }
                 AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> requestWork(forceTail = false)
                 AccessibilityEvent.TYPE_VIEW_CLICKED -> handlePossibleSend(event)
             }
         } catch (t: Throwable) {
-            Log.d(TAG, "dispatch failed", t)
+            diag("dispatch fail: ${t.javaClass.simpleName}")
         }
     }
 
@@ -132,10 +154,14 @@ class MoeAccessibilityService : AccessibilityService() {
         workRunning = true
         try {
             reloadConfig()
-            if (shouldProcessNow(forceTail)) {
-                reconcile(forceTail)
+            val gate = shouldProcessNow(forceTail)
+            if (!gate) {
+                diag("skip: gate=false mode=${if (config.realtimeMode) "rt" else "punct"}")
+                return
             }
+            reconcile(forceTail)
         } catch (t: Throwable) {
+            diag("cycle fail: ${t.javaClass.simpleName}")
             Log.d(TAG, "work cycle failed", t)
         } finally {
             workRunning = false
@@ -169,6 +195,7 @@ class MoeAccessibilityService : AccessibilityService() {
             null
         }
         val isSend = id != null && id.substringAfterLast('/').contains(SEND_ID_TOKEN, ignoreCase = true)
+        diag("click id=$id send=$isSend")
         if (!isSend) return
         requestWork(forceTail = true)
     }
@@ -191,7 +218,11 @@ class MoeAccessibilityService : AccessibilityService() {
                 lastTarget = target
                 return
             }
-            if (!setText(node, target)) return
+            if (!setText(node, target)) {
+                val ok = pasteViaClipboard(node, target)
+                diag("setText: FAIL paste=$ok len=${target.length}")
+                if (!ok) return
+            }
             lastTarget = target
             if (sameAsTarget && !forceTail) return
             val fresh = if (node.refresh()) currentText(node) else null
@@ -238,8 +269,26 @@ class MoeAccessibilityService : AccessibilityService() {
             if (currentText(cached) != null) return cached
             dropCachedInput()
         }
-        val root = rootInActiveWindow ?: return null
+        val root = rootInActiveWindow
+        if (root == null) {
+            diag("node: rootInActiveWindow=null winCnt=${try { windows?.size ?: -1 } catch (t: Throwable) { -1 }}")
+            for (win in try { windows.orEmpty() } catch (t: Throwable) { emptyList<AccessibilityWindowInfo>() }) {
+                val wr = win.root ?: continue
+                val pkg = wr.packageName?.toString() ?: continue
+                if (pkg.contains("tencent.mobileqq")) {
+                    diag("node: try window $pkg")
+                    val found = findNodeById(wr, INPUT_ID_SUFFIX) ?: findEditable(wr)
+                    if (found != null) {
+                        diag("node: fromWin id=${found.viewIdResourceName}")
+                        cachedInput = found
+                        return found
+                    }
+                }
+            }
+            return null
+        }
         val node = findNodeById(root, INPUT_ID_SUFFIX) ?: findEditable(root)
+        diag("node: root id=${node?.viewIdResourceName} editable=${node?.isEditable}")
         cachedInput = node
         return node
     }
@@ -270,6 +319,15 @@ class MoeAccessibilityService : AccessibilityService() {
             child.recycle()
         }
         return null
+    }
+
+    private fun pasteViaClipboard(node: AccessibilityNodeInfo, text: String): Boolean = try {
+        val cm = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager ?: return false
+        cm.setPrimaryClip(ClipData.newPlainText("moetext", text))
+        node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+        node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+    } catch (t: Throwable) {
+        false
     }
 
     private fun setText(node: AccessibilityNodeInfo, text: String): Boolean {
