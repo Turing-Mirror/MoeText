@@ -38,6 +38,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
@@ -274,8 +276,6 @@ private fun StatusTab(
 
         Spacer(Modifier.height(14.dp))
         CompatPanel(onRequestBattery)
-        Spacer(Modifier.height(14.dp))
-        ServiceDiagPanel(enabled)
 
         Spacer(Modifier.height(18.dp))
         SectionTitle("处理模式")
@@ -320,13 +320,25 @@ private fun StatusTab(
 
 @Composable
 private fun CompatPanel(onRequestBattery: () -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
     PanelCard {
-        Text(
-            "机型兼容性指引",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(Modifier.height(6.dp))
+        Row(
+            Modifier.fillMaxWidth().clickable { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "机型兼容性指引",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "收起" else "展开",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (expanded) {
         Text(
             "若无障碍开关被自动关闭或服务频繁掉线，请按品牌逐一检查：",
             fontSize = 12.sp,
@@ -343,11 +355,12 @@ private fun CompatPanel(onRequestBattery: () -> Unit) {
         TextButton(onClick = onRequestBattery) {
             Text("申请忽略电池优化", fontSize = 13.sp)
         }
+        }
     }
 }
 
 @Composable
-private fun ServiceDiagPanel(serviceEnabled: Boolean) {
+private fun ServiceDiagPanel() {
     var lines by remember { mutableStateOf(listOf<String>()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -356,22 +369,14 @@ private fun ServiceDiagPanel(serviceEnabled: Boolean) {
         }
     }
     PanelCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "服务诊断",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                if (serviceEnabled) "运行中" else "未开启",
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            "服务诊断",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold
+        )
         Spacer(Modifier.height(6.dp))
         Text(
-            "在 QQ 中尝试输入后，下方日志应持续新增。若始终只有 connected，说明本机未放行 QQ 事件；若出现 node: root null，说明窗口内容读取受限。",
+            "在 QQ 中输入后日志应持续新增；把此截图发给开发者可精确定位问题。",
             fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -379,7 +384,7 @@ private fun ServiceDiagPanel(serviceEnabled: Boolean) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .heightIn(max = 220.dp)
+                .heightIn(max = 260.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             if (lines.isEmpty()) {
@@ -862,6 +867,10 @@ private fun TestTab(config: AppConfig) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(glassContentPadding())
     ) {
+        SectionTitle("服务诊断")
+        Spacer(Modifier.height(8.dp))
+        ServiceDiagPanel()
+        Spacer(Modifier.height(22.dp))
         SectionTitle("实时预览")
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(

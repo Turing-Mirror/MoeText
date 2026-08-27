@@ -50,6 +50,9 @@ class MoeAccessibilityService : AccessibilityService() {
     private var seqIndex = 0
     private var cachedInput: AccessibilityNodeInfo? = null
 
+    @Volatile
+    private var lastObservedText: String = ""
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private var workRunning = false
     private var workQueued = false
@@ -90,7 +93,16 @@ class MoeAccessibilityService : AccessibilityService() {
                     diag("evt winState $pkg")
                     resetSession()
                 }
-                AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> requestWork(forceTail = false)
+                AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> {
+                    val incoming = try {
+                        event.text?.joinToString("")?.takeIf { it.isNotBlank() }
+                            ?: event.beforeText?.toString()?.takeIf { it.isNotBlank() }
+                    } catch (t: Throwable) {
+                        null
+                    }
+                    if (incoming != null) lastObservedText = incoming
+                    requestWork(forceTail = false)
+                }
                 AccessibilityEvent.TYPE_VIEW_CLICKED -> handlePossibleSend(event)
             }
         } catch (t: Throwable) {
@@ -126,6 +138,7 @@ class MoeAccessibilityService : AccessibilityService() {
     private fun resetSession() {
         userOriginal = ""
         lastTarget = ""
+        lastObservedText = ""
         seqIndex = 0
         dropCachedInput()
         reloadConfig()
@@ -175,12 +188,15 @@ class MoeAccessibilityService : AccessibilityService() {
     private fun shouldProcessNow(forceTail: Boolean): Boolean {
         if (forceTail) return true
         if (config.realtimeMode) return true
-        val current = peekInputText() ?: return false
-        if (current.isEmpty()) {
-            clearAccumulator()
-            return false
+        val viaNode = peekInputText()
+        if (!viaNode.isNullOrEmpty()) return viaNode.last() in TRIGGER_ENDS
+        val hint = lastObservedText.trim()
+        if (hint.isNotEmpty()) {
+            diag("gate: node盲,用事件文本")
+            return hint.last() in TRIGGER_ENDS
         }
-        return current.last() in TRIGGER_ENDS
+        if (viaNode != null) clearAccumulator()
+        return false
     }
 
     private fun handlePossibleSend(event: AccessibilityEvent) {
@@ -201,33 +217,71 @@ class MoeAccessibilityService : AccessibilityService() {
     }
 
     private fun reconcile(forceTail: Boolean) {
-        val node = inputNode() ?: return
+        val node = inputNode() ?: run {
+            diag("rec: no node")
+            return
+        }
+        var advanced = false
         for (round in 0 until RECONCILE_ROUNDS) {
-            val current = currentText(node) ?: return
+            val nodeText = currentText(node)
+            var current = nodeText
+            if (current.isNullOrEmpty()) {
+                val hint = lastObservedText.trim()
+                if (hint.isNotEmpty()) {
+                    current = hint
+                    diag("cur: evtHint len=${hint.length}")
+                }
+            }
+            if (current.isNullOrEmpty()) {
+                diag("cur: empty r$round")
+                return
+            }
             val sameAsTarget = current == lastTarget
             if (sameAsTarget && !forceTail) return
-            if (current.isEmpty()) {
-                clearAccumulator()
+            recoverOriginal(current)
+            if (userOriginal.isEmpty()) {
+                diag("orig: stripped empty")
                 return
             }
-            recoverOriginal(current)
-            if (userOriginal.isEmpty()) return
             val target = TransformEngine.transform(userOriginal, config, forceTail, seqIndex)
-            seqIndex++
             if (target == current) {
                 lastTarget = target
+                diag("nochange len=${target.length}")
                 return
             }
-            if (!setText(node, target)) {
-                val ok = pasteViaClipboard(node, target)
-                diag("setText: FAIL paste=$ok len=${target.length}")
-                if (!ok) return
-            }
+            val ok = writeBack(node, target)
+            diag("rec: wrote=$ok ${current.length}->${target.length} r$round")
+            if (!ok) return
             lastTarget = target
+            if (!advanced) {
+                seqIndex++
+                advanced = true
+            }
             if (sameAsTarget && !forceTail) return
-            val fresh = if (node.refresh()) currentText(node) else null
+            val fresh = try {
+                if (node.refresh()) currentText(node) else null
+            } catch (t: Throwable) {
+                null
+            }
             if (fresh == null || fresh == target) return
+            lastObservedText = fresh
         }
+    }
+
+    private fun writeBack(node: AccessibilityNodeInfo, target: String): Boolean {
+        val setOk = setText(node, target)
+        var verifiedLen = -1
+        try {
+            if (node.refresh()) {
+                currentText(node)?.let { verifiedLen = it.length }
+            }
+        } catch (t: Throwable) {
+        }
+        val trusted = setOk && (verifiedLen < 0 || verifiedLen == target.length)
+        if (trusted) return true
+        val pasted = pasteViaClipboard(node, target)
+        diag("write set=$setOk vlen=$verifiedLen paste=$pasted")
+        return pasted
     }
 
     private fun recoverOriginal(raw: String) {
