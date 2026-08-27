@@ -2,11 +2,13 @@ package com.turingmirror.moetext.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.os.SystemClock
+import android.content.Intent
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import android.os.Bundle
-import android.util.Log
 import com.turingmirror.moetext.data.ConfigStore
 import com.turingmirror.moetext.engine.AppConfig
 import com.turingmirror.moetext.engine.Stripper
@@ -18,128 +20,182 @@ class MoeAccessibilityService : AccessibilityService() {
         private const val TAG = "MoeTextSvc"
         private const val PKG_QQ = "com.tencent.mobileqq"
         private const val PKG_QQI = "com.tencent.mobileqqi"
-        private const val ID_INPUT = "com.tencent.mobileqq:id/input"
-        private const val ID_SEND = "com.tencent.mobileqq:id/send_btn"
-        private const val ECHO_WINDOW_MS = 600L
+        private const val INPUT_ID_SUFFIX = ":id/input"
+        private const val SEND_ID_TOKEN = "send"
+        private const val REALTIME_DEBOUNCE_MS = 110L
+        private const val RECONCILE_ROUNDS = 4
         private val TRIGGER_ENDS = setOf('。', '！', '!', '？', '?')
     }
 
     private var config: AppConfig = AppConfig()
     private var userOriginal = ""
     private var lastTarget = ""
-    private var lastWriteAt = 0L
-    private var busy = false
     private var seqIndex = 0
     private var cachedInput: AccessibilityNodeInfo? = null
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var workRunning = false
+    private var workQueued = false
+    private var workRequestedWhileRunning = false
+    private var queuedForceTail = false
+
     override fun onServiceConnected() {
-        serviceInfo = AccessibilityServiceInfo().apply {
-            eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
-                AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
-                AccessibilityEvent.TYPE_VIEW_CLICKED
-            feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-            flags = AccessibilityServiceInfo.DEFAULT or
-                AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
-                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
-            notificationTimeout = 80
-            packageNames = arrayOf(PKG_QQ, PKG_QQI)
+        try {
+            serviceInfo = serviceInfo.apply {
+                eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
+                    AccessibilityEvent.TYPE_VIEW_CLICKED
+                feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+                flags = AccessibilityServiceInfo.DEFAULT or
+                    AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+                notificationTimeout = 80
+                packageNames = arrayOf(PKG_QQ, PKG_QQI)
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "configure serviceInfo failed", t)
         }
-        resetSession()
+        reloadConfig()
     }
 
     override fun onInterrupt() {
-        busy = false
+        workRunning = false
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
-        val pkg = event.packageName?.toString() ?: return
-        if (pkg != PKG_QQ && pkg != PKG_QQI) return
-        when (event.eventType) {
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> resetSession()
-            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> handleTextChanged()
-            AccessibilityEvent.TYPE_VIEW_CLICKED -> {
-                if (event.source?.viewIdResourceName == ID_SEND) process(allowRandomTail = true)
+        try {
+            val pkg = event.packageName?.toString() ?: return
+            if (pkg != PKG_QQ && pkg != PKG_QQI) return
+            when (event.eventType) {
+                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> resetSession()
+                AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> requestWork(forceTail = false)
+                AccessibilityEvent.TYPE_VIEW_CLICKED -> handlePossibleSend(event)
             }
+        } catch (t: Throwable) {
+            Log.d(TAG, "dispatch failed", t)
+        }
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        shutdown()
+        return super.onUnbind(intent)
+    }
+
+    override fun onDestroy() {
+        shutdown()
+        super.onDestroy()
+    }
+
+    private fun shutdown() {
+        mainHandler.removeCallbacksAndMessages(null)
+        dropCachedInput()
+        workQueued = false
+        workRunning = false
+    }
+
+    private fun reloadConfig() {
+        config = try {
+            ConfigStore.load(this)
+        } catch (t: Throwable) {
+            AppConfig()
         }
     }
 
     private fun resetSession() {
         userOriginal = ""
         lastTarget = ""
-        lastWriteAt = 0L
-        busy = false
         seqIndex = 0
         dropCachedInput()
-        config = ConfigStore.load(this)
+        reloadConfig()
     }
 
-    private fun dropCachedInput() {
-        cachedInput?.let { node ->
-            try {
-                node.recycle()
-            } catch (e: Exception) {
-            }
+    private fun requestWork(forceTail: Boolean) {
+        if (workRunning) {
+            workRequestedWhileRunning = true
+            queuedForceTail = queuedForceTail || forceTail
+            return
         }
-        cachedInput = null
-    }
-
-    private fun inputNode(): AccessibilityNodeInfo? {
-        cachedInput?.let { cached ->
-            try {
-                if (cached.text != null) return cached
-            } catch (e: Exception) {
-            }
-            dropCachedInput()
+        if (workQueued) {
+            queuedForceTail = queuedForceTail || forceTail
+            return
         }
-        val root = rootInActiveWindow ?: return null
-        val node = findNodeById(root, ID_INPUT) ?: findEditable(root)
-        root.recycle()
-        cachedInput = node
-        return node
+        workQueued = true
+        val delay = if (config.realtimeMode && !forceTail) REALTIME_DEBOUNCE_MS else 0L
+        mainHandler.postDelayed({
+            workQueued = false
+            runWorkCycle(forceTail = queuedForceTail.also { queuedForceTail = false })
+        }, delay)
     }
 
-    private fun handleTextChanged() {
-        if (!config.realtimeMode) {
-            val current = peekInputText() ?: return
-            if (current.isEmpty() || current.last() !in TRIGGER_ENDS) return
-        }
-        process(allowRandomTail = false)
-    }
-
-    private fun process(allowRandomTail: Boolean) {
-        if (busy) return
-        busy = true
+    private fun runWorkCycle(forceTail: Boolean) {
+        if (workRunning) return
+        workRunning = true
         try {
-            val node = inputNode() ?: return
+            reloadConfig()
+            if (shouldProcessNow(forceTail)) {
+                reconcile(forceTail)
+            }
+        } catch (t: Throwable) {
+            Log.d(TAG, "work cycle failed", t)
+        } finally {
+            workRunning = false
+            if (workRequestedWhileRunning) {
+                workRequestedWhileRunning = false
+                requestWork(forceTail = queuedForceTail.also { queuedForceTail = false })
+            }
+        }
+    }
 
-            val raw = node.text?.toString()?.trim() ?: ""
-            if (raw.isEmpty()) {
+    private fun shouldProcessNow(forceTail: Boolean): Boolean {
+        if (forceTail) return true
+        if (config.realtimeMode) return true
+        val current = peekInputText() ?: return false
+        if (current.isEmpty()) {
+            clearAccumulator()
+            return false
+        }
+        return current.last() in TRIGGER_ENDS
+    }
+
+    private fun handlePossibleSend(event: AccessibilityEvent) {
+        val source = try {
+            event.source
+        } catch (t: Throwable) {
+            null
+        } ?: return
+        val id = try {
+            source.viewIdResourceName
+        } catch (t: Throwable) {
+            null
+        }
+        val isSend = id != null && id.substringAfterLast('/').contains(SEND_ID_TOKEN, ignoreCase = true)
+        if (!isSend) return
+        requestWork(forceTail = true)
+    }
+
+    private fun reconcile(forceTail: Boolean) {
+        val node = inputNode() ?: return
+        for (round in 0 until RECONCILE_ROUNDS) {
+            val current = currentText(node) ?: return
+            val sameAsTarget = current == lastTarget
+            if (sameAsTarget && !forceTail) return
+            if (current.isEmpty()) {
                 clearAccumulator()
                 return
             }
-            val now = SystemClock.elapsedRealtime()
-            if (now - lastWriteAt < ECHO_WINDOW_MS && raw == lastTarget) {
-                lastWriteAt = 0L
+            recoverOriginal(current)
+            if (userOriginal.isEmpty()) return
+            val target = TransformEngine.transform(userOriginal, config, forceTail, seqIndex)
+            seqIndex++
+            if (target == current) {
+                lastTarget = target
                 return
             }
-
-            recoverOriginal(raw)
-            if (userOriginal.isEmpty()) return
-
-            val target = TransformEngine.transform(userOriginal, config, allowRandomTail, seqIndex)
-            seqIndex++
-            if (target != raw) {
-                if (setText(node, target)) {
-                    lastTarget = target
-                    lastWriteAt = SystemClock.elapsedRealtime()
-                }
-            } else {
-                lastTarget = target
-            }
-        } catch (e: Exception) {
-            Log.d(TAG, "process failed", e)
-        } finally {
-            busy = false
+            if (!setText(node, target)) return
+            lastTarget = target
+            if (sameAsTarget && !forceTail) return
+            val fresh = if (node.refresh()) currentText(node) else null
+            if (fresh == null || fresh == target) return
         }
     }
 
@@ -156,33 +212,62 @@ class MoeAccessibilityService : AccessibilityService() {
         lastTarget = ""
     }
 
+    private fun currentText(node: AccessibilityNodeInfo): String? = try {
+        node.text?.toString()?.trim()
+    } catch (t: Throwable) {
+        null
+    }
+
     private fun peekInputText(): String? {
         val node = inputNode() ?: return null
-        return try {
-            node.text?.toString()?.trim()
-        } catch (e: Exception) {
-            null
-        }
+        return currentText(node)
     }
 
-    private fun findNodeById(node: AccessibilityNodeInfo, id: String): AccessibilityNodeInfo? {
-        if (id == node.viewIdResourceName) return AccessibilityNodeInfo.obtain(node)
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val found = findNodeById(child, id)
-            child.recycle()
-            if (found != null) return found
+    private fun dropCachedInput() {
+        cachedInput?.let { node ->
+            try {
+                node.recycle()
+            } catch (ignored: Exception) {
+            }
         }
-        return null
+        cachedInput = null
     }
 
-    private fun findEditable(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        if (node.isEditable) return AccessibilityNodeInfo.obtain(node)
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val found = findEditable(child)
+    private fun inputNode(): AccessibilityNodeInfo? {
+        cachedInput?.let { cached ->
+            if (currentText(cached) != null) return cached
+            dropCachedInput()
+        }
+        val root = rootInActiveWindow ?: return null
+        val node = findNodeById(root, INPUT_ID_SUFFIX) ?: findEditable(root)
+        cachedInput = node
+        return node
+    }
+
+    private fun findNodeById(root: AccessibilityNodeInfo, idSuffix: String): AccessibilityNodeInfo? {
+        val pkg = root.packageName?.toString() ?: return null
+        val matches = try {
+            root.findAccessibilityNodeInfosByViewId(pkg + idSuffix)
+        } catch (t: Throwable) {
+            emptyList()
+        }
+        var result: AccessibilityNodeInfo? = null
+        for (info in matches) {
+            if (result == null) result = info else info.recycle()
+        }
+        return result
+    }
+
+    private fun findEditable(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        if (root.isEditable) return AccessibilityNodeInfo.obtain(root)
+        for (i in 0 until root.childCount) {
+            val child = root.getChild(i) ?: continue
+            val found = if (child.isEditable) child else findEditable(child)
+            if (found != null) {
+                if (found !== child) child.recycle()
+                return found
+            }
             child.recycle()
-            if (found != null) return found
         }
         return null
     }
@@ -193,13 +278,16 @@ class MoeAccessibilityService : AccessibilityService() {
             args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
             val ok = node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
             if (ok) {
-                val sel = Bundle()
-                sel.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, text.length)
-                sel.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, text.length)
-                node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, sel)
+                try {
+                    val sel = Bundle()
+                    sel.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, text.length)
+                    sel.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, text.length)
+                    node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, sel)
+                } catch (ignored: Throwable) {
+                }
             }
             ok
-        } catch (e: Exception) {
+        } catch (t: Throwable) {
             false
         }
     }

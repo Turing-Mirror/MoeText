@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
@@ -82,6 +83,7 @@ import dev.chrisbanes.haze.rememberHazeState
 
 private const val PREFS_NAME = "moetext_config"
 private const val KEY_AUTO_UPDATE = "auto_update"
+private const val REPLACE_PAGE_SIZE = 20
 
 private fun autoUpdateEnabled(context: Context): Boolean =
     context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -97,16 +99,19 @@ private val NotifyAmber = Color(0xFFE8A91C)
 class MainActivity : ComponentActivity() {
 
     private val serviceEnabled = mutableStateOf(false)
+    private val serviceConnected = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        serviceEnabled.value = isServiceEnabled()
+        refreshServiceState()
         setContent {
             MoeTheme {
                 Root(
                     enabled = serviceEnabled.value,
+                    connected = serviceConnected.value,
                     onOpenAccessibility = { openAccessibilitySettings() },
+                    onRequestBattery = { requestIgnoreBatteryOptimization() },
                     initialConfig = ConfigStore.load(applicationContext),
                     onPersist = { ConfigStore.save(applicationContext, it) }
                 )
@@ -116,16 +121,44 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        serviceEnabled.value = isServiceEnabled()
+        refreshServiceState()
     }
 
-    private fun isServiceEnabled(): Boolean = try {
+    private fun refreshServiceState() {
+        serviceEnabled.value = try {
+            Settings.Secure.getString(
+                contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            )?.contains("$packageName/") == true
+        } catch (e: Exception) {
+            false
+        }
+        serviceConnected.value = runCatching { connectedServiceRunning() }.getOrDefault(false)
+    }
+
+    private fun connectedServiceRunning(): Boolean {
         val am = getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
-        am?.getEnabledAccessibilityServiceList(-1)?.any {
+        return am?.getEnabledAccessibilityServiceList(-1)?.any {
             it.resolveInfo?.serviceInfo?.packageName == packageName
         } ?: false
-    } catch (e: Exception) {
-        false
+    }
+
+    private fun requestIgnoreBatteryOptimization() {
+        val intents = listOf(
+            Intent(
+                Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                Uri.parse("package:$packageName")
+            ),
+            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        )
+        for (intent in intents) {
+            try {
+                startActivity(intent)
+                return
+            } catch (ignored: Exception) {
+            }
+        }
+        Toast.makeText(this, "无法打开电池设置", Toast.LENGTH_SHORT).show()
     }
 
     private fun openAccessibilitySettings() {
@@ -140,7 +173,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun Root(
     enabled: Boolean,
+    connected: Boolean,
     onOpenAccessibility: () -> Unit,
+    onRequestBattery: () -> Unit,
     initialConfig: AppConfig,
     onPersist: (AppConfig) -> Unit
 ) {
@@ -156,7 +191,7 @@ private fun Root(
     ) {
         Box(Modifier.fillMaxSize().glassBackdrop(hazeState)) {
             when (tab) {
-                0 -> StatusTab(enabled, config, onConfig = { config = it }, onOpenAccessibility)
+                0 -> StatusTab(enabled, connected, config, onConfig = { config = it }, onOpenAccessibility, onRequestBattery)
                 1 -> RulesTab(config, onConfig = { config = it }, onPersist = { onPersist(it) })
                 2 -> TestTab(config)
             }
@@ -176,9 +211,11 @@ private fun Root(
 @Composable
 private fun StatusTab(
     enabled: Boolean,
+    connected: Boolean,
     config: AppConfig,
     onConfig: (AppConfig) -> Unit,
-    onOpenAccessibility: () -> Unit
+    onOpenAccessibility: () -> Unit,
+    onRequestBattery: () -> Unit
 ) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(glassContentPadding())
@@ -208,22 +245,35 @@ private fun StatusTab(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    if (enabled) "无障碍服务已开启" else "无障碍服务未开启",
+                    when {
+                        !enabled -> "无障碍服务未开启"
+                        connected -> "无障碍服务运行正常"
+                        else -> "服务未连接，请重新开关一次"
+                    },
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (enabled) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+                    color = when {
+                        !enabled -> MaterialTheme.colorScheme.error
+                        connected -> Color(0xFF2E7D32)
+                        else -> NotifyAmber
+                    }
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    if (enabled) "关闭软件或点击前往关闭无障碍服务即可停止"
-                    else "点击前往开启无障碍服务",
+                    if (enabled) {
+                        if (connected) "关闭软件或点击前往关闭无障碍服务即可停止"
+                        else "开关已打开但后台被系统清理，请看下方兼容性指引"
+                    } else "点击前往开启无障碍服务",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        Spacer(Modifier.height(22.dp))
+        Spacer(Modifier.height(14.dp))
+        CompatPanel(onRequestBattery)
+
+        Spacer(Modifier.height(18.dp))
         SectionTitle("处理模式")
         Spacer(Modifier.height(8.dp))
         GlassSegmentRow(
@@ -261,6 +311,34 @@ private fun StatusTab(
         SectionTitle("关于")
         Spacer(Modifier.height(8.dp))
         AboutPanel()
+    }
+}
+
+@Composable
+private fun CompatPanel(onRequestBattery: () -> Unit) {
+    PanelCard {
+        Text(
+            "机型兼容性指引",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "若无障碍开关被自动关闭或服务频繁掉线，请按品牌逐一检查：",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "vivo / iQOO（OriginOS）\n· 设置 → 电池 → 后台高耗电：允许喵言喵\n· 最近任务中下拉卡片锁定本应用\n· 关闭「睡眠待机优化」对后台的限制\n\nOPPO / OnePlus（ColorOS）\n· 设置 → 应用 → 喵言喵 → 允许自启动与关联启动\n· 耗电管理改为「允许完全后台行为」\n· 勿在最近任务中清理本应用\n\n华为 / 荣耀（鸿蒙 / MagicOS）\n· 设置 → 应用 → 启动管理：手动管理，三项全开\n\n小米（HyperOS）\n· 省电策略设为「无限制」，开启「后台弹出」",
+            fontSize = 12.sp,
+            lineHeight = 18.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(10.dp))
+        TextButton(onClick = onRequestBattery) {
+            Text("申请忽略电池优化", fontSize = 13.sp)
+        }
     }
 }
 
@@ -490,10 +568,25 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
 
         Spacer(Modifier.height(16.dp))
         SectionTitle("自定义替换")
-        if (config.customReplaces.isNotEmpty()) {
+        val replaces = config.customReplaces
+        val totalPages = maxOf(1, (replaces.size + REPLACE_PAGE_SIZE - 1) / REPLACE_PAGE_SIZE)
+        var replacePage by rememberSaveable { mutableIntStateOf(0) }
+        LaunchedEffect(replaces.size) {
+            if (replacePage >= totalPages) replacePage = totalPages - 1
+        }
+        val pageStart = replacePage * REPLACE_PAGE_SIZE
+        val pageItems = replaces.drop(pageStart).take(REPLACE_PAGE_SIZE)
+        if (pageItems.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             PanelCard {
-                config.customReplaces.forEachIndexed { index, rule ->
+                Text(
+                    "共 ${replaces.size} 条 · 第 ${replacePage + 1} / $totalPages 页",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(6.dp))
+                pageItems.forEachIndexed { i, rule ->
+                    val index = pageStart + i
                     Row(
                         Modifier.fillMaxWidth().padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -509,7 +602,7 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
                             }))
                         })
                         IconButton(onClick = {
-                            onConfig(config.copy(customReplaces = config.customReplaces.filterIndexed { i, _ -> i != index }))
+                            onConfig(config.copy(customReplaces = config.customReplaces.filterIndexed { idx, _ -> idx != index }))
                         }) {
                             Icon(
                                 Icons.Default.Close,
@@ -517,6 +610,52 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                    }
+                }
+            }
+            if (totalPages > 1) {
+                var jumpRaw by remember { mutableStateOf("") }
+                Spacer(Modifier.height(4.dp))
+                PanelCard {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
+                            onClick = { replacePage-- },
+                            enabled = replacePage > 0
+                        ) { Text("上一页") }
+                        Text(
+                            "${replacePage + 1} / $totalPages",
+                            fontSize = 13.sp,
+                            modifier = Modifier.weight(1f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        TextButton(
+                            onClick = { replacePage++ },
+                            enabled = replacePage < totalPages - 1
+                        ) { Text("下一页") }
+                    }
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = jumpRaw,
+                            onValueChange = { jumpRaw = it.filter { c -> c.isDigit() } },
+                            label = { Text("页码直达") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.width(120.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        TextButton(onClick = {
+                            val n = jumpRaw.toIntOrNull()
+                            if (n != null) {
+                                replacePage = (n - 1).coerceIn(0, totalPages - 1)
+                                jumpRaw = ""
+                            }
+                        }) { Text("前往") }
                     }
                 }
             }
