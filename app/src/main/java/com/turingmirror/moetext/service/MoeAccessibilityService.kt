@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -52,6 +53,8 @@ class MoeAccessibilityService : AccessibilityService() {
 
     @Volatile
     private var lastObservedText: String = ""
+    private var lastSendForceAt = 0L
+    private var allowRandomNext = true
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var workRunning = false
@@ -204,13 +207,24 @@ class MoeAccessibilityService : AccessibilityService() {
             event.source
         } catch (t: Throwable) {
             null
-        } ?: return
+        }
+        if (source == null) {
+            val now = SystemClock.elapsedRealtime()
+            allowRandomNext = now - lastSendForceAt > 2500
+            lastSendForceAt = now
+            diag("click src=null → treat as send emo=$allowRandomNext")
+            requestWork(forceTail = true)
+            return
+        }
         val id = try {
             source.viewIdResourceName
         } catch (t: Throwable) {
             null
         }
-        val isSend = id != null && id.substringAfterLast('/').contains(SEND_ID_TOKEN, ignoreCase = true)
+        val isSend = id != null && (
+            id.substringAfterLast('/').contains(SEND_ID_TOKEN, ignoreCase = true) ||
+                id.contains("chat_msg_send", ignoreCase = true)
+            )
         diag("click id=$id send=$isSend")
         if (!isSend) return
         requestWork(forceTail = true)
@@ -243,7 +257,8 @@ class MoeAccessibilityService : AccessibilityService() {
                 diag("orig: stripped empty")
                 return
             }
-            val target = TransformEngine.transform(userOriginal, config, forceTail, seqIndex)
+            val target = TransformEngine.transform(userOriginal, config, forceTail && allowRandomNext, seqIndex)
+            allowRandomNext = true
             if (target == current) {
                 lastTarget = target
                 diag("nochange len=${target.length}")

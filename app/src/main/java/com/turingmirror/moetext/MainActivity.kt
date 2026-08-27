@@ -288,7 +288,7 @@ private fun StatusTab(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "标点触发：仅在句读处立即处理（推荐）\n实时处理：每输入一字立即处理",
+            "标点触发：句子写完时即时美化，点「发送」时强制整条处理（推荐）\n实时处理：每输入一字立即处理",
             fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
