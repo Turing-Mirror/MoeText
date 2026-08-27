@@ -6,9 +6,12 @@ object TransformEngine {
         original: String,
         config: AppConfig,
         allowRandomTail: Boolean,
-        seqIndex: Int = 0
+        seqIndex: Int = 0,
+        completeMessage: Boolean = true
     ): String {
         if (original.isBlank()) return original
+        val leading = original.takeWhile { it.isWhitespace() }
+        val trailing = original.takeLastWhile { it.isWhitespace() }
         var text = original.trim()
 
         if (config.woMenToBenmiaoMen) text = ReplaceRule("我们", "本喵们").transform(text)
@@ -19,14 +22,19 @@ object TransformEngine {
             if (r.enabled && r.from.isNotEmpty()) text = ReplaceRule(r.from, r.to).transform(text)
         }
         if (config.sentenceSuffixEnabled) {
-            text = SentenceSuffixRule(config.sentenceSuffixes, config.sentenceSuffixPick, seqIndex).transform(text)
+            text = SentenceSuffixRule(
+                config.sentenceSuffixes,
+                config.sentenceSuffixPick,
+                seqIndex,
+                includeTrailingSegment = completeMessage
+            ).transform(text)
         }
-        if (config.tailEnabled) {
+        if (completeMessage && config.tailEnabled) {
             text = TailRule(config.tails, config.tailPick, seqIndex).transform(text)
         }
-        if (config.emoticonEnabled && allowRandomTail) {
+        if (completeMessage && config.emoticonEnabled && allowRandomTail) {
             text = RandomTailRule(config.emoticons.filter { it.isNotBlank() }).transform(text)
         }
-        return text
+        return leading + text + trailing
     }
 }

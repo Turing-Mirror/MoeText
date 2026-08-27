@@ -28,6 +28,7 @@ class MoeAccessibilityService : AccessibilityService() {
         private const val SEND_ID_TOKEN = "send"
         private const val REALTIME_DEBOUNCE_MS = 110L
         private const val RECONCILE_ROUNDS = 4
+        private val TRIGGER_ENDS = setOf('。', '！', '!', '？', '?')
 
         private val LOG_LOCK = Any()
         private val LOG_RING = ArrayDeque<String>()
@@ -51,18 +52,16 @@ class MoeAccessibilityService : AccessibilityService() {
     private var cachedInput: AccessibilityNodeInfo? = null
 
     @Volatile
-    private var lastObservedText: String = ""
-    @Volatile
-    private var hasFreshInputHint: Boolean = false
+    private var lastObservedText: String? = null
+    private var lastObservedAt = 0L
     private var configDirty = true
-    private var lastSendForceAt = 0L
-    private var allowRandomNext = true
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var workRunning = false
     private var workQueued = false
     private var workRequestedWhileRunning = false
     private var queuedForceTail = false
+    private var scheduledWork: Runnable? = null
 
     override fun onServiceConnected() {
         diag("connected")
@@ -96,10 +95,6 @@ class MoeAccessibilityService : AccessibilityService() {
             when (event.eventType) {
                 AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                     diag("evt winState $pkg")
-                    // 仅丢弃节点缓存与累积器；保留 lastObservedText 与 lastTarget，
-                    // QQ 会高频抛 winState（面板开合等），全部清零会把自有证据抹掉
-                    userOriginal = ""
-                    seqIndex = 0
                     dropCachedInput()
                     configDirty = true
                 }
@@ -115,13 +110,14 @@ class MoeAccessibilityService : AccessibilityService() {
                         null
                     }
                     diag("txt ev=${evText?.length ?: -1} bf=${before?.length ?: -1}")
-                    val incoming = evText?.takeIf { it.isNotBlank() } ?: before?.takeIf { it.isNotBlank() }
-                    if (incoming != null) {
-                        lastObservedText = incoming
-                        hasFreshInputHint = true
+                    if (evText != null) {
+                        lastObservedText = evText
+                        lastObservedAt = SystemClock.elapsedRealtime()
+                        if (evText.isEmpty()) {
+                            clearAccumulator()
+                        }
                     } else {
-                        hasFreshInputHint = false
-                        diag("txt: 全部读空(疑似ROM脱敏)")
+                        diag("txt: 当前文本不可读")
                     }
                     requestWork(forceTail = false)
                 }
@@ -145,6 +141,7 @@ class MoeAccessibilityService : AccessibilityService() {
     private fun shutdown() {
         mainHandler.removeCallbacksAndMessages(null)
         dropCachedInput()
+        scheduledWork = null
         workQueued = false
         workRunning = false
     }
@@ -157,43 +154,48 @@ class MoeAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun resetSession() {
-        userOriginal = ""
-        lastTarget = ""
-        lastObservedText = ""
-        seqIndex = 0
-        dropCachedInput()
-        reloadConfig()
-    }
-
     private fun requestWork(forceTail: Boolean) {
+        if (forceTail) {
+            queuedForceTail = true
+            if (workRunning) {
+                workRequestedWhileRunning = true
+                diag("req: busy final")
+                return
+            }
+            scheduledWork?.let { mainHandler.removeCallbacks(it) }
+            scheduledWork = null
+            workQueued = false
+            queuedForceTail = false
+            diag("req: final immediate")
+            runWorkCycle(forceTail = true)
+            return
+        }
         if (workRunning) {
             workRequestedWhileRunning = true
-            val grew = !queuedForceTail && forceTail
-            queuedForceTail = queuedForceTail || forceTail
-            diag("req: busy ft=$forceTail grew=$grew")
+            diag("req: busy input")
             return
         }
         if (workQueued) {
-            val grew = !queuedForceTail && forceTail
-            queuedForceTail = queuedForceTail || forceTail
-            diag("req: queued ft=$forceTail grew=$grew")
             return
         }
-        workQueued = true
-        diag("req: new ft=$forceTail")
-        val delay = if (!forceTail) REALTIME_DEBOUNCE_MS else 0L
-        mainHandler.postDelayed({
+        val runnable = Runnable {
+            scheduledWork = null
             workQueued = false
-            val ft = queuedForceTail.also { queuedForceTail = false }
-            diag("exec: fire ft=$ft")
-            runWorkCycle(forceTail = ft)
-        }, delay)
+            val final = queuedForceTail
+            queuedForceTail = false
+            diag("exec: fire final=$final")
+            runWorkCycle(forceTail = final)
+        }
+        scheduledWork = runnable
+        workQueued = true
+        mainHandler.postDelayed(runnable, REALTIME_DEBOUNCE_MS)
     }
 
     private fun runWorkCycle(forceTail: Boolean) {
         if (workRunning) {
-            diag("BUSY-DROP ft=$forceTail")
+            workRequestedWhileRunning = true
+            queuedForceTail = queuedForceTail || forceTail
+            diag("BUSY-DROP final=$forceTail")
             return
         }
         workRunning = true
@@ -203,33 +205,52 @@ class MoeAccessibilityService : AccessibilityService() {
                 configDirty = false
             }
             val node = inputNode()
-            var current: String? = try {
+            val nodeText: String? = try {
                 node?.let { currentText(it) }
             } catch (t: Throwable) {
                 null
             }
-            if (current.isNullOrEmpty()) {
-                val hint = lastObservedText.trim()
-                if (hint.isNotEmpty()) {
-                    current = hint
-                    diag("cur: evtHint len=${hint.length}")
+            var current = nodeText?.takeIf { it.isNotEmpty() }
+            if (current == null && nodeText == null && !lastObservedText.isNullOrEmpty()) {
+                if (SystemClock.elapsedRealtime() - lastObservedAt <= 500L) {
+                    val hint = lastObservedText
+                    if (hint != null) {
+                        current = hint
+                        diag("cur: evtHint len=${hint.length}")
+                    }
                 }
             }
-            if (current.isNullOrEmpty()) {
+            if (current == null) {
+                if (nodeText != null) clearAccumulator()
                 diag("cur: empty (node=${node != null})")
                 return
             }
-            node?.let { reconcileNode(it, current, forceTail) }
+            if (!forceTail && !config.realtimeMode && !endsWithTrigger(current)) {
+                diag("skip: punct curLen=${current.length}")
+                return
+            }
+            if (node == null) {
+                diag("rec: no node")
+                return
+            }
+            lastObservedText = current
+            lastObservedAt = SystemClock.elapsedRealtime()
+            reconcileNode(node, current, forceTail)
         } catch (t: Throwable) {
             diag("cycle fail: ${t.javaClass.simpleName}")
         } finally {
             workRunning = false
             if (workRequestedWhileRunning) {
+                val rerunFinal = queuedForceTail
                 workRequestedWhileRunning = false
-                requestWork(forceTail = queuedForceTail.also { queuedForceTail = false })
+                queuedForceTail = false
+                requestWork(forceTail = rerunFinal)
             }
         }
     }
+
+    private fun endsWithTrigger(text: String): Boolean =
+        text.trimEnd().lastOrNull() in TRIGGER_ENDS
 
     private fun handlePossibleSend(event: AccessibilityEvent) {
         val source = try {
@@ -238,11 +259,7 @@ class MoeAccessibilityService : AccessibilityService() {
             null
         }
         if (source == null) {
-            val now = SystemClock.elapsedRealtime()
-            allowRandomNext = now - lastSendForceAt > 2500
-            lastSendForceAt = now
-            diag("click src=null → treat as send emo=$allowRandomNext")
-            requestWork(forceTail = true)
+            diag("click src=null ignored")
             return
         }
         val id = try {
@@ -250,11 +267,16 @@ class MoeAccessibilityService : AccessibilityService() {
         } catch (t: Throwable) {
             null
         }
+        val label = try {
+            source.text?.toString() ?: source.contentDescription?.toString()
+        } catch (t: Throwable) {
+            null
+        }
         val isSend = id != null && (
             id.substringAfterLast('/').contains(SEND_ID_TOKEN, ignoreCase = true) ||
                 id.contains("chat_msg_send", ignoreCase = true)
-            )
-        diag("click id=$id send=$isSend")
+            ) || label?.contains("发送") == true
+        diag("click id=$id label=$label send=$isSend")
         if (!isSend) return
         requestWork(forceTail = true)
     }
@@ -270,8 +292,13 @@ class MoeAccessibilityService : AccessibilityService() {
                 diag("orig: stripped empty")
                 return
             }
-            val target = TransformEngine.transform(userOriginal, config, forceTail && allowRandomNext, seqIndex)
-            allowRandomNext = true
+            val target = TransformEngine.transform(
+                userOriginal,
+                config,
+                allowRandomTail = forceTail,
+                seqIndex = seqIndex,
+                completeMessage = forceTail
+            )
             if (target == current) {
                 lastTarget = target
                 diag("nochange len=${target.length}")
@@ -327,7 +354,7 @@ class MoeAccessibilityService : AccessibilityService() {
     }
 
     private fun currentText(node: AccessibilityNodeInfo): String? = try {
-        node.text?.toString()?.trim()
+        node.text?.toString()
     } catch (t: Throwable) {
         null
     }

@@ -55,7 +55,8 @@ class ReplaceRule(private val from: String, private val to: String) : TransformR
 class SentenceSuffixRule(
     private val candidates: List<String>,
     private val pickMode: PickMode,
-    private val seqIndex: Int
+    private val seqIndex: Int,
+    private val includeTrailingSegment: Boolean = true
 ) : TransformRule {
 
     override fun transform(input: String): String {
@@ -71,14 +72,15 @@ class SentenceSuffixRule(
         var last = 0
         for (m in regex.findAll(input)) {
             val seg = input.substring(last, m.range.first).trim()
-            if (seg.isNotEmpty()) {
+            val completed = includeTrailingSegment || m.value.any { it in "，,。！!?；;：:" }
+            if (seg.isNotEmpty() && completed) {
                 sb.append(seg)
                 sb.append(suffix)
             }
             sb.append(m.value)
             last = m.range.last + 1
         }
-        if (last < input.length) {
+        if (includeTrailingSegment && last < input.length) {
             val seg = input.substring(last).trim()
             if (seg.isNotEmpty()) {
                 sb.append(seg)
@@ -86,7 +88,7 @@ class SentenceSuffixRule(
             }
         }
         val result = sb.toString().trim()
-        return result.ifEmpty { input + suffix }
+        return result.ifEmpty { input }
     }
 
     companion object {

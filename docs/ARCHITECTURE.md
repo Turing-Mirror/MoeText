@@ -13,7 +13,7 @@ ui/       Jetpack Compose，Material 3
 
 ```
 无障碍事件 (仅 com.tencent.mobileqq / mobileqqi)
- ├─ TYPE_WINDOW_STATE_CHANGED → 重置会话状态，重新加载配置
+ ├─ TYPE_WINDOW_STATE_CHANGED → 丢弃输入节点缓存，重新加载配置
  ├─ TYPE_VIEW_TEXT_CHANGED
  │    ├─ 实时模式            → process()
  │    └─ 标点模式            → 读输入框，句读结尾才 process()
@@ -23,6 +23,7 @@ process():
  rootInActiveWindow → 按 viewId 找 input 框，找不到则递归找 isEditable 节点
  → recoverOriginal(raw) 还原用户原文
  → TransformEngine.transform(原文, 规则链, allowRandomTail)
+ → 输入中使用非完成态规则；发送时使用完整规则
  → 与当前内容不同则 ACTION_SET_TEXT 写回 + 光标移到末尾
 ```
 
@@ -48,13 +49,14 @@ process():
 
 ## 回显抑制
 
-ACTION_SET_TEXT 写回后会再次触发 TYPE_VIEW_TEXT_CHANGED。600ms 内且内容与
-`lastTarget` 相同的事件视为自身回显，直接忽略，避免死循环。
+ACTION_SET_TEXT 写回后会再次触发 TYPE_VIEW_TEXT_CHANGED。当前内容与
+`lastTarget` 相同且不是发送处理时直接忽略，避免重复变换。
 
 ## allowRandomTail
 
-实时模式下每次按键都会触发处理，若追加随机颜文字会导致颜文字越积越多或频繁
-变化，因此实时模式下仅在点击发送时才允许追加随机尾缀；确定性尾缀不受限制。
+输入过程中只执行替换规则，并只为已经被句读符号结束的片段追加句尾后缀；
+固定尾缀与随机颜文字都只在完整消息处理时追加。这样输入半句话不会提前
+出现尾缀，发送触发模式也可以等待发送按钮再处理整条消息。
 
 ## 扩展新目标应用
 

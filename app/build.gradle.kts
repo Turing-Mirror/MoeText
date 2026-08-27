@@ -12,8 +12,8 @@ android {
         applicationId = "com.turingmirror.moetext"
         minSdk = 23
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.6.0"
+        versionCode = 14
+        versionName = "1.6.1"
     }
 
     buildTypes {
@@ -49,4 +49,5 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("dev.chrisbanes.haze:haze:1.6.10")
+    testImplementation("junit:junit:4.13.2")
 }

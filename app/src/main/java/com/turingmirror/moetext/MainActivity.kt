@@ -195,7 +195,17 @@ private fun Root(
     ) {
         Box(Modifier.fillMaxSize().glassBackdrop(hazeState)) {
             when (tab) {
-                0 -> StatusTab(enabled, connected, config, onConfig = { config = it }, onOpenAccessibility, onRequestBattery)
+                0 -> StatusTab(
+                    enabled,
+                    connected,
+                    config,
+                    onConfig = {
+                        config = it
+                        onPersist(it)
+                    },
+                    onOpenAccessibility,
+                    onRequestBattery
+                )
                 1 -> RulesTab(config, onConfig = { config = it }, onPersist = { onPersist(it) })
                 2 -> TestTab(config)
             }
@@ -281,14 +291,14 @@ private fun StatusTab(
         SectionTitle("处理模式")
         Spacer(Modifier.height(8.dp))
         GlassSegmentRow(
-            options = listOf("标点触发", "实时处理"),
+            options = listOf("发送触发", "实时处理"),
             selectedIndex = if (config.realtimeMode) 1 else 0,
             onSelected = { idx -> onConfig(config.copy(realtimeMode = idx == 1)) },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "两种模式均为边打边改、消息发出前已是喵文。\n区别：标点触发的随机颜文字仅在点发送时追加，实时处理随输入追加",
+            "发送触发：输入时不追加装饰，点发送前处理整条消息；输入句读可提前处理\n实时处理：输入过程中即时替换，已结束的句子才追加后缀",
             fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
