@@ -53,6 +53,9 @@ class MoeAccessibilityService : AccessibilityService() {
 
     @Volatile
     private var lastObservedText: String = ""
+    @Volatile
+    private var hasFreshInputHint: Boolean = false
+    private var configDirty = true
     private var lastSendForceAt = 0L
     private var allowRandomNext = true
 
@@ -94,16 +97,33 @@ class MoeAccessibilityService : AccessibilityService() {
             when (event.eventType) {
                 AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                     diag("evt winState $pkg")
-                    resetSession()
+                    // 仅丢弃节点缓存与累积器；保留 lastObservedText 与 lastTarget，
+                    // QQ 会高频抛 winState（面板开合等），全部清零会把自有证据抹掉
+                    userOriginal = ""
+                    seqIndex = 0
+                    dropCachedInput()
+                    configDirty = true
                 }
                 AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> {
-                    val incoming = try {
-                        event.text?.joinToString("")?.takeIf { it.isNotBlank() }
-                            ?: event.beforeText?.toString()?.takeIf { it.isNotBlank() }
+                    val evText = try {
+                        event.text?.joinToString("")
                     } catch (t: Throwable) {
                         null
                     }
-                    if (incoming != null) lastObservedText = incoming
+                    val before = try {
+                        event.beforeText?.toString()
+                    } catch (t: Throwable) {
+                        null
+                    }
+                    diag("txt ev=${evText?.length ?: -1} bf=${before?.length ?: -1}")
+                    val incoming = evText?.takeIf { it.isNotBlank() } ?: before?.takeIf { it.isNotBlank() }
+                    if (incoming != null) {
+                        lastObservedText = incoming
+                        hasFreshInputHint = true
+                    } else {
+                        hasFreshInputHint = false
+                        diag("txt: 全部读空(疑似ROM脱敏)")
+                    }
                     requestWork(forceTail = false)
                 }
                 AccessibilityEvent.TYPE_VIEW_CLICKED -> handlePossibleSend(event)
@@ -169,16 +189,33 @@ class MoeAccessibilityService : AccessibilityService() {
         if (workRunning) return
         workRunning = true
         try {
-            reloadConfig()
-            val gate = shouldProcessNow(forceTail)
-            if (!gate) {
-                diag("skip: gate=false mode=${if (config.realtimeMode) "rt" else "punct"}")
+            if (configDirty) {
+                reloadConfig()
+                configDirty = false
+            }
+            if (forceTail) {
+                reconcile(forceTail)
                 return
             }
-            reconcile(forceTail)
+            val viaNode = peekInputText()
+            when {
+                !viaNode.isNullOrEmpty() -> {
+                    hasFreshInputHint = true
+                    lastObservedText = viaNode
+                    if (viaNode.last() in TRIGGER_ENDS || config.realtimeMode) {
+                        reconcile(forceTail)
+                    } else {
+                        diag("skip: punct curLen=${viaNode.length}")
+                    }
+                }
+                config.realtimeMode -> reconcile(forceTail)
+                hasFreshInputHint && lastObservedText.isNotBlank() ->
+                    if (lastObservedText.last() in TRIGGER_ENDS) reconcile(forceTail)
+                    else diag("skip: punct hintOnly len=${lastObservedText.length}")
+                else -> diag("skip: noread mode=${if (config.realtimeMode) "rt" else "punct"}")
+            }
         } catch (t: Throwable) {
             diag("cycle fail: ${t.javaClass.simpleName}")
-            Log.d(TAG, "work cycle failed", t)
         } finally {
             workRunning = false
             if (workRequestedWhileRunning) {
@@ -186,20 +223,6 @@ class MoeAccessibilityService : AccessibilityService() {
                 requestWork(forceTail = queuedForceTail.also { queuedForceTail = false })
             }
         }
-    }
-
-    private fun shouldProcessNow(forceTail: Boolean): Boolean {
-        if (forceTail) return true
-        if (config.realtimeMode) return true
-        val viaNode = peekInputText()
-        if (!viaNode.isNullOrEmpty()) return viaNode.last() in TRIGGER_ENDS
-        val hint = lastObservedText.trim()
-        if (hint.isNotEmpty()) {
-            diag("gate: node盲,用事件文本")
-            return hint.last() in TRIGGER_ENDS
-        }
-        if (viaNode != null) clearAccumulator()
-        return false
     }
 
     private fun handlePossibleSend(event: AccessibilityEvent) {
