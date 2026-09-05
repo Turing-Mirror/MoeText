@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="unicode_title">Unicode 工具</string>
+    <string name="unicode_base">基础昵称</string>
+    <string name="unicode_ending">尾部文字（建议使用普通文字）</string>
+    <string name="unicode_copy_nickname">复制昵称</string>
+    <string name="unicode_copy_plain">复制普通昵称</string>
+    <string name="unicode_protection">文字保护</string>
+    <string name="unicode_target">目标昵称，留空使用上方昵称</string>
+    <string name="unicode_copy_clean">复制清理后的昵称</string>
+    <string name="unicode_body">消息正文</string>
+    <string name="unicode_strong">加强保护</string>
+    <string name="unicode_copy_protected">复制保护后的正文</string>
+    <string name="unicode_copied">已复制。</string>
+    <string name="unicode_usage">在 QQ 中选择 @ 对象，再粘贴保护后的正文。清理昵称不会修改对方的群昵称。</string>
+    <string name="unicode_wide">使用宽预览</string>
+    <string name="unicode_narrow">使用窄预览</string>
+    <string name="unicode_preview_nickname">昵称预览</string>
+    <string name="unicode_preview_message">提及后的消息</string>
+    <string name="unicode_preview_protected">保护后的消息</string>
+    <string name="unicode_preview_note">预览使用本机排版。QQ 的版本、换行与昵称长度限制可能影响实际显示，请先在测试会话中确认。</string>
+    <string name="unicode_analysis">查看或收起字符分析</string>
+    <string name="unicode_counts">码点：%1$d；UTF-16 长度：%2$d。</string>
+</resources>

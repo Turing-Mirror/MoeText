@@ -5,6 +5,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TransformEngineTest {
+    @Test fun pluralRulesAreIndependentOfSingularRules() {
+        val config = AppConfig(sentenceSuffixEnabled = false, emoticonEnabled = false,
+            woMenToBenmiaoMen = true, niMenToZhurenMen = true, niToZhuren = true)
+        assertEquals("本喵们 主人们 本喵 主人", TransformEngine.transform("我们 你们 我 你", config, false))
+        assertEquals("我们 你们 本喵 主人", TransformEngine.transform("我们 你们 我 你",
+            config.copy(woMenToBenmiaoMen = false, niMenToZhurenMen = false), false))
+    }
+
+    @Test fun originalWhitespaceAndLiteralSuffixSurvive() {
+        val config = AppConfig(sentenceSuffixEnabled = false, emoticonEnabled = false)
+        assertEquals("  喵 😀\n本喵  ", TransformEngine.transform("  喵 😀\n我  ", config, false))
+        assertEquals(" \n ", TransformEngine.transform(" \n ", config, false))
+    }
 
     private val classical = AppConfig(
         sentenceSuffixEnabled = true,

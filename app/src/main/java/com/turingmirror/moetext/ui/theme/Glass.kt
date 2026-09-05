@@ -22,6 +22,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -46,7 +49,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 
 /** 底栏胶囊本体高度（不含外边距与系统导航栏）。 */
-private val BarInnerHeight = 44.dp
+private val BarInnerHeight = 48.dp
 private val BarPadding = 5.dp
 private val BarSideMargin = 22.dp
 private val BarBottomMargin = 10.dp
@@ -162,7 +165,7 @@ fun GlassBottomBar(
             .padding(BarPadding)
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(BarInnerHeight)) {
-            val segW = maxWidth / 3
+            val segW = maxWidth / 4
             val offset by animateDpAsState(
                 targetValue = segW * selected,
                 animationSpec = spring(dampingRatio = 0.82f, stiffness = 380f),
@@ -170,7 +173,7 @@ fun GlassBottomBar(
             )
             Box(
                 modifier = Modifier
-                    .offset(x = offset)
+                    .offset { IntOffset(offset.roundToPx(), 0) }
                     .width(segW)
                     .fillMaxHeight()
                     .clip(thumbShape)
@@ -180,14 +183,16 @@ fun GlassBottomBar(
                 Box(Modifier.matchParentSize().background(sheen(isDark), thumbShape))
             }
             Row(modifier = Modifier.fillMaxWidth()) {
-                val labels = listOf("状态", "规则", "测试")
+                val labels = listOf("状态", "规则", "测试", "Unicode")
                 labels.forEachIndexed { idx, label ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .clip(thumbShape)
-                            .clickable(
+                            .selectable(
+                                selected = selected == idx,
+                                role = Role.Tab,
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) { onSelect(idx) },
@@ -237,7 +242,7 @@ fun GlassSegmentRow(
             )
             Box(
                 modifier = Modifier
-                    .offset(x = offset)
+                    .offset { IntOffset(offset.roundToPx(), 0) }
                     .width(segW)
                     .fillMaxHeight()
                     .clip(shape)

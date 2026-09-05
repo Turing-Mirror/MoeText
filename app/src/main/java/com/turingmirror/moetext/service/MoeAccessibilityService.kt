@@ -2,8 +2,7 @@ package com.turingmirror.moetext.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.content.ClipData
-import android.content.ClipboardManager
+import android.content.SharedPreferences
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -15,12 +14,13 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import com.turingmirror.moetext.data.ConfigStore
 import com.turingmirror.moetext.engine.AppConfig
-import com.turingmirror.moetext.engine.Stripper
 import com.turingmirror.moetext.engine.TransformEngine
 
 class MoeAccessibilityService : AccessibilityService() {
 
     companion object {
+        @Volatile var connected = false
+            private set
         private const val TAG = "MoeTextSvc"
         private const val PKG_QQ = "com.tencent.mobileqq"
         private const val PKG_QQI = "com.tencent.mobileqqi"
@@ -47,7 +47,10 @@ class MoeAccessibilityService : AccessibilityService() {
 
     private var config: AppConfig = AppConfig()
     private var userOriginal = ""
+    private var originalAtLastTarget = ""
     private var lastTarget = ""
+    private var manuallyEdited = false
+    private var inputWindowId = -1
     private var seqIndex = 0
     private var cachedInput: AccessibilityNodeInfo? = null
 
@@ -55,6 +58,7 @@ class MoeAccessibilityService : AccessibilityService() {
     private var lastObservedText: String? = null
     private var lastObservedAt = 0L
     private var configDirty = true
+    private val preferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> configDirty = true }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var workRunning = false
@@ -64,6 +68,8 @@ class MoeAccessibilityService : AccessibilityService() {
     private var scheduledWork: Runnable? = null
 
     override fun onServiceConnected() {
+        connected = true
+        getSharedPreferences("moetext_config", MODE_PRIVATE).registerOnSharedPreferenceChangeListener(preferenceListener)
         diag("connected")
         try {
             serviceInfo = serviceInfo.apply {
@@ -99,6 +105,15 @@ class MoeAccessibilityService : AccessibilityService() {
                     configDirty = true
                 }
                 AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> {
+                    val source = event.source ?: return
+                    val accepted = source.isEditable && source.isFocused && !source.isPassword && source.viewIdResourceName == pkg + INPUT_ID_SUFFIX
+                    val windowId = source.windowId
+                    source.recycle()
+                    if (!accepted) return
+                    if (inputWindowId != windowId) {
+                        clearAccumulator()
+                        inputWindowId = windowId
+                    }
                     val evText = try {
                         event.text?.joinToString("")
                     } catch (t: Throwable) {
@@ -139,6 +154,8 @@ class MoeAccessibilityService : AccessibilityService() {
     }
 
     private fun shutdown() {
+        connected = false
+        getSharedPreferences("moetext_config", MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(preferenceListener)
         mainHandler.removeCallbacksAndMessages(null)
         dropCachedInput()
         scheduledWork = null
@@ -276,18 +293,19 @@ class MoeAccessibilityService : AccessibilityService() {
             id.substringAfterLast('/').contains(SEND_ID_TOKEN, ignoreCase = true) ||
                 id.contains("chat_msg_send", ignoreCase = true)
             ) || label?.contains("发送") == true
-        diag("click id=$id label=$label send=$isSend")
+        source.recycle()
+        diag("click send=$isSend")
         if (!isSend) return
         requestWork(forceTail = true)
     }
 
     private fun reconcileNode(node: AccessibilityNodeInfo, initial: String, forceTail: Boolean) {
         var current = initial
-        var advanced = false
         for (round in 0 until RECONCILE_ROUNDS) {
             val sameAsTarget = current == lastTarget
             if (sameAsTarget && !forceTail) return
             recoverOriginal(current)
+            if (manuallyEdited) return
             if (userOriginal.isEmpty()) {
                 diag("orig: stripped empty")
                 return
@@ -301,17 +319,15 @@ class MoeAccessibilityService : AccessibilityService() {
             )
             if (target == current) {
                 lastTarget = target
+                originalAtLastTarget = userOriginal
                 diag("nochange len=${target.length}")
                 return
             }
-            val ok = writeBack(node, target)
+            val ok = writeBack(node, current, target)
             diag("rec: wrote=$ok ${current.length}->${target.length} r$round")
             if (!ok) return
             lastTarget = target
-            if (!advanced) {
-                seqIndex++
-                advanced = true
-            }
+            originalAtLastTarget = userOriginal
             if (sameAsTarget && !forceTail) return
             val fresh = try {
                 if (node.refresh()) currentText(node) else null
@@ -324,7 +340,11 @@ class MoeAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun writeBack(node: AccessibilityNodeInfo, target: String): Boolean {
+    private fun writeBack(node: AccessibilityNodeInfo, expected: String, target: String): Boolean {
+        if (!node.refresh() || !node.isFocused || node.isPassword ||
+            node.packageName?.toString() !in setOf(PKG_QQ, PKG_QQI) ||
+            node.viewIdResourceName != node.packageName.toString() + INPUT_ID_SUFFIX ||
+            currentText(node) != expected) return false
         val setOk = setText(node, target)
         var verifiedLen = -1
         try {
@@ -333,24 +353,31 @@ class MoeAccessibilityService : AccessibilityService() {
             }
         } catch (t: Throwable) {
         }
-        val trusted = setOk && (verifiedLen < 0 || verifiedLen == target.length)
+        val trusted = setOk && currentText(node) == target
         if (trusted) return true
-        val pasted = pasteViaClipboard(node, target)
-        diag("write set=$setOk vlen=$verifiedLen paste=$pasted")
-        return pasted
+        diag("write set=$setOk vlen=$verifiedLen")
+        return false
     }
 
     private fun recoverOriginal(raw: String) {
+        if (raw == lastTarget) return
         if (lastTarget.isNotEmpty() && raw.startsWith(lastTarget)) {
-            userOriginal += raw.substring(lastTarget.length)
+            userOriginal = originalAtLastTarget + raw.substring(lastTarget.length)
+        } else if (lastTarget.isNotEmpty() && lastTarget != userOriginal) {
+            // A reverse replacement cannot recover the user's original text unambiguously.
+            // Preserve manual corrections until this message is cleared.
+            manuallyEdited = true
         } else {
-            userOriginal = Stripper.strip(raw, config)
+            userOriginal = raw
         }
     }
 
     private fun clearAccumulator() {
+        if (lastTarget.isNotEmpty()) seqIndex++
         userOriginal = ""
+        originalAtLastTarget = ""
         lastTarget = ""
+        manuallyEdited = false
     }
 
     private fun currentText(node: AccessibilityNodeInfo): String? = try {
@@ -371,28 +398,34 @@ class MoeAccessibilityService : AccessibilityService() {
 
     private fun inputNode(): AccessibilityNodeInfo? {
         cachedInput?.let { cached ->
-            if (currentText(cached) != null) return cached
+            if (cached.refresh() && cached.isFocused && !cached.isPassword && currentText(cached) != null) return cached
             dropCachedInput()
         }
         val root = rootInActiveWindow
+        if (root != null && root.packageName?.toString() !in setOf(PKG_QQ, PKG_QQI)) {
+            root.recycle()
+            return null
+        }
         if (root == null) {
             diag("node: rootInActiveWindow=null winCnt=${try { windows?.size ?: -1 } catch (t: Throwable) { -1 }}")
             for (win in try { windows.orEmpty() } catch (t: Throwable) { emptyList<AccessibilityWindowInfo>() }) {
                 val wr = win.root ?: continue
-                val pkg = wr.packageName?.toString() ?: continue
-                if (pkg.contains("tencent.mobileqq")) {
+                val pkg = wr.packageName?.toString()
+                if (pkg in setOf(PKG_QQ, PKG_QQI)) {
                     diag("node: try window $pkg")
-                    val found = findNodeById(wr, INPUT_ID_SUFFIX) ?: findEditable(wr)
+                    val found = findNodeById(wr, INPUT_ID_SUFFIX)
+                    wr.recycle()
                     if (found != null) {
                         diag("node: fromWin id=${found.viewIdResourceName}")
                         cachedInput = found
                         return found
                     }
-                }
+                } else wr.recycle()
             }
             return null
         }
-        val node = findNodeById(root, INPUT_ID_SUFFIX) ?: findEditable(root)
+        val node = findNodeById(root, INPUT_ID_SUFFIX)
+        root.recycle()
         diag("node: root id=${node?.viewIdResourceName} editable=${node?.isEditable}")
         cachedInput = node
         return node
@@ -407,32 +440,9 @@ class MoeAccessibilityService : AccessibilityService() {
         }
         var result: AccessibilityNodeInfo? = null
         for (info in matches) {
-            if (result == null) result = info else info.recycle()
+            if (result == null && info.isEditable && info.isFocused && !info.isPassword) result = info else info.recycle()
         }
         return result
-    }
-
-    private fun findEditable(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        if (root.isEditable) return AccessibilityNodeInfo.obtain(root)
-        for (i in 0 until root.childCount) {
-            val child = root.getChild(i) ?: continue
-            val found = if (child.isEditable) child else findEditable(child)
-            if (found != null) {
-                if (found !== child) child.recycle()
-                return found
-            }
-            child.recycle()
-        }
-        return null
-    }
-
-    private fun pasteViaClipboard(node: AccessibilityNodeInfo, text: String): Boolean = try {
-        val cm = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager ?: return false
-        cm.setPrimaryClip(ClipData.newPlainText("moetext", text))
-        node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-        node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
-    } catch (t: Throwable) {
-        false
     }
 
     private fun setText(node: AccessibilityNodeInfo, text: String): Boolean {

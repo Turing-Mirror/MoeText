@@ -12,8 +12,8 @@ android {
         applicationId = "com.turingmirror.moetext"
         minSdk = 23
         targetSdk = 35
-        versionCode = 14
-        versionName = "1.6.1"
+        versionCode = 16
+        versionName = "1.7.1"
     }
 
     buildTypes {

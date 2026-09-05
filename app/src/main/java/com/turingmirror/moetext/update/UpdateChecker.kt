@@ -7,6 +7,7 @@ import android.os.Looper
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import com.turingmirror.moetext.data.readLimitedText
 
 data class UpdateInfo(
     val versionCode: Int,
@@ -53,7 +54,7 @@ object UpdateChecker {
                             releasePage = json.optString(
                                 "releasePage",
                                 json.optString("url", FALLBACK_PAGE)
-                            )
+                            ).takeIf { page -> runCatching { URL(page).protocol == "https" }.getOrDefault(false) } ?: FALLBACK_PAGE
                         )
                     )
                 } else {
@@ -71,7 +72,9 @@ object UpdateChecker {
             conn.connectTimeout = 8000
             conn.readTimeout = 8000
             conn.setRequestProperty("Accept", "application/json")
-            val body = conn.inputStream.use { it.readBytes().decodeToString() }
+            val body = conn.inputStream.bufferedReader().use {
+                it.readLimitedText(65536)
+            }
             JSONObject(body)
         } catch (e: Exception) {
             null

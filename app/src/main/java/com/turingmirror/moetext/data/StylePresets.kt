@@ -174,6 +174,8 @@ object StylePresets {
                 CustomReplace(true, "害怕", "😨"),
                 CustomReplace(true, "爱", "❤️"),
                 CustomReplace(true, "钱", "💰"),
+                CustomReplace(true, "睡觉", "😴"),
+                CustomReplace(true, "吃饭", "🍚"),
                 CustomReplace(true, "吃", "🍚"),
                 CustomReplace(true, "喝", "🥤"),
                 CustomReplace(true, "睡", "😴"),
@@ -197,8 +199,6 @@ object StylePresets {
                 CustomReplace(true, "完成", "✅"),
                 CustomReplace(true, "等待", "⏳"),
                 CustomReplace(true, "时间", "⏰"),
-                CustomReplace(true, "睡觉", "😴"),
-                CustomReplace(true, "吃饭", "🍚"),
                 CustomReplace(true, "好吃", "😋"),
                 CustomReplace(true, "追剧", "📺"),
                 CustomReplace(true, "音乐", "🎵"),
@@ -294,6 +294,7 @@ object PresetCodec {
     fun parse(text: String): AppConfig? {
         return try {
             val o = JSONObject(text)
+            if (!o.has("sl") || !o.has("cr") || o.optJSONArray("sl") == null || o.optJSONArray("cr") == null) return null
             val sl = mutableListOf<String>()
             val slArr = o.optJSONArray("sl")
             if (slArr != null) for (i in 0 until slArr.length()) sl.add(slArr.optString(i))
