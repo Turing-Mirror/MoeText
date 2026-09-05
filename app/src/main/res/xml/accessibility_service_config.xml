@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/accessibility_desc"
-    android:packageNames="com.tencent.mobileqq,com.tencent.mobileqqi"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeViewTextChanged|typeViewClicked"
+    android:packageNames="com.tencent.mobileqq,com.tencent.mobileqqi,com.discord"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewTextChanged|typeViewTextSelectionChanged|typeViewFocused"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:notificationTimeout="80"
+    android:notificationTimeout="0"
     android:accessibilityFlags="flagDefault|flagReportViewIds|flagRetrieveInteractiveWindows|flagIncludeNotImportantViews"
     android:canRetrieveWindowContent="true" />

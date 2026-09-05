@@ -298,14 +298,14 @@ private fun StatusTab(
         SectionTitle("处理模式")
         Spacer(Modifier.height(8.dp))
         GlassSegmentRow(
-            options = listOf("发送触发", "实时处理"),
+            options = listOf("停顿处理", "实时处理"),
             selectedIndex = if (config.realtimeMode) 1 else 0,
             onSelected = { idx -> onConfig(config.copy(realtimeMode = idx == 1)) },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "发送触发：句末标点可提前触发处理；发送点击仅作补充，不能保证赶在 QQ 发出消息前完成。\n实时处理：输入过程中替换文字，为已结束的句子追加后缀。\n手动修改已转换的文字后，本条消息暂停自动处理，清空输入框后恢复。",
+            "支持 QQ 和 Discord 聊天输入框。停顿处理：输入时替换文字，短暂停顿后补齐后缀。实时处理：文字确认输入后同步补齐后缀。修改文字后会继续处理，同一条消息的后缀选择保持不变。",
             fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -393,7 +393,7 @@ private fun ServiceDiagPanel() {
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "在 QQ 中输入后日志应持续新增；把此截图发给开发者可精确定位问题。",
+            "在 QQ 或 Discord 中输入后可查看处理记录，反馈问题时可附上此页截图。",
             fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -920,7 +920,7 @@ private fun TestTab(config: AppConfig) {
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            "此处预览完整消息。QQ 输入过程与发送时的效果需要在会话中确认。",
+            "此处预览完整消息。聊天中的实际效果可在 QQ 或 Discord 会话中确认。",
             fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
