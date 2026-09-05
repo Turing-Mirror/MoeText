@@ -67,31 +67,30 @@ class SentenceSuffixRule(
 
     private fun applySuffix(input: String, suffix: String): String {
         if (suffix.isEmpty()) return input
-        val regex = Regex("([，,。！!？?\\s]+)")
         val sb = StringBuilder()
         var last = 0
-        for (m in regex.findAll(input)) {
-            val seg = input.substring(last, m.range.first).trim()
-            val completed = includeTrailingSegment || m.value.any { it in "，,。！!?；;：:" }
-            if (seg.isNotEmpty() && completed) {
-                sb.append(seg)
+        for (m in separators.findAll(input)) {
+            val seg = input.substring(last, m.range.first)
+            sb.append(seg)
+            if (seg.isNotBlank()) {
                 sb.append(suffix)
             }
             sb.append(m.value)
             last = m.range.last + 1
         }
-        if (includeTrailingSegment && last < input.length) {
-            val seg = input.substring(last).trim()
-            if (seg.isNotEmpty()) {
-                sb.append(seg)
+        if (last < input.length) {
+            val seg = input.substring(last)
+            sb.append(seg)
+            if (includeTrailingSegment && seg.isNotBlank()) {
                 sb.append(suffix)
             }
         }
-        val result = sb.toString().trim()
+        val result = sb.toString()
         return result.ifEmpty { input }
     }
 
     companion object {
+        private val separators = Regex("([，,。！!？?；;：:\\n]+)")
         fun pickFrom(pool: List<String>, pickMode: PickMode, seqIndex: Int): String {
             val cleaned = pool.map { it.trim() }.filter { it.isNotEmpty() }
             if (cleaned.isEmpty()) return ""

@@ -10,4 +10,5 @@ app/build/
 /captures
 .externalNativeBuild
 .cxx
+/.kotlin/
 local.properties

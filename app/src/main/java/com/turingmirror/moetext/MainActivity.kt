@@ -63,7 +63,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +79,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turingmirror.moetext.data.ConfigStore
+import com.turingmirror.moetext.data.readLimitedText
 import com.turingmirror.moetext.data.PresetCodec
 import com.turingmirror.moetext.data.StylePresets
 import com.turingmirror.moetext.engine.AppConfig
@@ -141,10 +147,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun connectedServiceRunning(): Boolean {
-        val am = getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
-        return am?.getEnabledAccessibilityServiceList(-1)?.any {
-            it.resolveInfo?.serviceInfo?.packageName == packageName
-        } ?: false
+        return com.turingmirror.moetext.service.MoeAccessibilityService.connected
     }
 
     private fun requestIgnoreBatteryOptimization() {
@@ -185,6 +188,7 @@ private fun Root(
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var config by remember { mutableStateOf(initialConfig) }
+    val tabStates = rememberSaveableStateHolder()
 
     val hazeState = rememberHazeState()
 
@@ -194,6 +198,7 @@ private fun Root(
             .background(MaterialTheme.colorScheme.background)
     ) {
         Box(Modifier.fillMaxSize().glassBackdrop(hazeState)) {
+            tabStates.SaveableStateProvider(tab) {
             when (tab) {
                 0 -> StatusTab(
                     enabled,
@@ -208,6 +213,8 @@ private fun Root(
                 )
                 1 -> RulesTab(config, onConfig = { config = it }, onPersist = { onPersist(it) })
                 2 -> TestTab(config)
+                3 -> UnicodeTab()
+            }
             }
         }
         GlassBottomBar(
@@ -261,7 +268,7 @@ private fun StatusTab(
                 Text(
                     when {
                         !enabled -> "无障碍服务未开启"
-                        connected -> "无障碍服务运行正常"
+                        connected -> "无障碍服务已连接"
                         else -> "服务未连接，请重新开关一次"
                     },
                     fontSize = 15.sp,
@@ -275,8 +282,8 @@ private fun StatusTab(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     if (enabled) {
-                        if (connected) "关闭软件或点击前往关闭无障碍服务即可停止"
-                        else "开关已打开但后台被系统清理，请看下方兼容性指引"
+                        if (connected) "请在系统设置中关闭无障碍服务以停止处理"
+                        else "服务尚未连接，请重新开启或查看兼容性指引"
                     } else "点击前往开启无障碍服务",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -298,7 +305,7 @@ private fun StatusTab(
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "发送触发：输入时不追加装饰，点发送前处理整条消息；输入句读可提前处理\n实时处理：输入过程中即时替换，已结束的句子才追加后缀",
+            "发送触发：句末标点可提前触发处理；发送点击仅作补充，不能保证赶在 QQ 发出消息前完成。\n实时处理：输入过程中替换文字，为已结束的句子追加后缀。\n手动修改已转换的文字后，本条消息暂停自动处理，清空输入框后恢复。",
             fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -524,13 +531,14 @@ private fun QQGroupRow() {
 @Composable
 private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist: (AppConfig) -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
 
     fun lines(raw: String) = raw.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
 
-    var suffixRaw by remember { mutableStateOf(config.sentenceSuffixes.joinToString("\n")) }
-    var tailRaw by remember { mutableStateOf(config.tails.joinToString("\n")) }
-    var emoticonRaw by remember { mutableStateOf(config.emoticons.joinToString("\n")) }
+    var suffixRaw by rememberSaveable { mutableStateOf(config.sentenceSuffixes.joinToString("\n")) }
+    var tailRaw by rememberSaveable { mutableStateOf(config.tails.joinToString("\n")) }
+    var emoticonRaw by rememberSaveable { mutableStateOf(config.emoticons.joinToString("\n")) }
 
     fun merged(): AppConfig = config.copy(
         sentenceSuffixes = lines(suffixRaw).ifEmpty { listOf("喵") },
@@ -538,19 +546,27 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         emoticons = lines(emoticonRaw).ifEmpty { AppConfig.BUILTIN_EMOTICONS }
     )
 
-    var selectedStyle by rememberSaveable { mutableStateOf(StylePresets.BUILTIN.first().name) }
+    val draft = merged()
+    val selectedStyle = remember(draft) {
+        StylePresets.BUILTIN.find { StylePresets.apply(draft, it.config) == draft }?.name ?: "自定义"
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri != null) {
-            runCatching {
-                context.contentResolver.openOutputStream(uri)?.use {
-                    it.write(PresetCodec.toJson(merged()).toByteArray())
-                } ?: error("无法写入文件")
-                Toast.makeText(context, "风格已导出", Toast.LENGTH_SHORT).show()
-            }.onFailure {
-                Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
+            val json = PresetCodec.toJson(merged())
+            scope.launch {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openOutputStream(uri)?.use {
+                            it.write(json.toByteArray())
+                        } ?: error("无法写入文件")
+                    }
+                    Toast.makeText(context, "风格已导出", Toast.LENGTH_SHORT).show()
+                }.onFailure {
+                    Toast.makeText(context, "导出失败", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -559,22 +575,25 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            runCatching {
-                val text = context.contentResolver.openInputStream(uri)!!.use {
-                    it.readBytes().decodeToString()
+            scope.launch {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use {
+                            it.readLimitedText(262144)
+                        } ?: error("无法读取文件")
+                        PresetCodec.parse(text) ?: error("格式错误")
+                    }
+                }.onSuccess { parsed ->
+                    val applied = StylePresets.apply(merged(), parsed)
+                    suffixRaw = applied.sentenceSuffixes.joinToString("\n")
+                    tailRaw = applied.tails.joinToString("\n")
+                    emoticonRaw = applied.emoticons.joinToString("\n")
+                    onConfig(applied)
+                    onPersist(applied)
+                    Toast.makeText(context, "风格已导入并保存", Toast.LENGTH_SHORT).show()
+                }.onFailure {
+                    Toast.makeText(context, "导入失败：文件无效、过大或无法读取", Toast.LENGTH_SHORT).show()
                 }
-                PresetCodec.parse(text) ?: error("格式错误")
-            }.onSuccess { parsed ->
-                val applied = StylePresets.apply(merged(), parsed)
-                suffixRaw = applied.sentenceSuffixes.joinToString("\n")
-                tailRaw = applied.tails.joinToString("\n")
-                emoticonRaw = applied.emoticons.joinToString("\n")
-                onConfig(applied)
-                onPersist(applied)
-                selectedStyle = "自定义"
-                Toast.makeText(context, "风格已导入并保存", Toast.LENGTH_SHORT).show()
-            }.onFailure {
-                Toast.makeText(context, "导入失败：不是有效的风格文件", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -586,7 +605,6 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         emoticonRaw = applied.emoticons.joinToString("\n")
         onConfig(applied)
         onPersist(applied)
-        selectedStyle = name
         Toast.makeText(context, "已切换到「$name」", Toast.LENGTH_SHORT).show()
     }
 
@@ -896,13 +914,13 @@ private fun TestTab(config: AppConfig) {
             Text("处理后", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(6.dp))
             Text(
-                TransformEngine.transform(input, config, allowRandomTail = true),
+                remember(input, config) { TransformEngine.transform(input, config, allowRandomTail = true) },
                 fontSize = 15.sp
             )
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            "预览即实际写回效果。随机颜文字每次抽取结果不同。",
+            "此处预览完整消息。QQ 输入过程与发送时的效果需要在会话中确认。",
             fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="unicode_title">Unicode tools</string>
+    <string name="unicode_base">Base nickname</string>
+    <string name="unicode_ending">Ending (plain text recommended)</string>
+    <string name="unicode_copy_nickname">Copy nickname</string>
+    <string name="unicode_copy_plain">Copy plain nickname</string>
+    <string name="unicode_protection">Text protection</string>
+    <string name="unicode_target">Target nickname (leave blank to use the nickname above)</string>
+    <string name="unicode_copy_clean">Copy cleaned nickname</string>
+    <string name="unicode_body">Message body</string>
+    <string name="unicode_strong">Stronger protection</string>
+    <string name="unicode_copy_protected">Copy protected message</string>
+    <string name="unicode_copied">Copied.</string>
+    <string name="unicode_usage">Select the mention in QQ, then paste the protected message. Cleaning a nickname does not change the other person’s group nickname.</string>
+    <string name="unicode_wide">Use wide preview</string>
+    <string name="unicode_narrow">Use narrow preview</string>
+    <string name="unicode_preview_nickname">Nickname preview</string>
+    <string name="unicode_preview_message">Message with mention</string>
+    <string name="unicode_preview_protected">Protected message</string>
+    <string name="unicode_preview_note">This preview uses local text rendering. QQ versions, line wrapping and nickname limits may affect the result. Check in a test conversation first.</string>
+    <string name="unicode_analysis">Show or hide character analysis</string>
+    <string name="unicode_counts">Code points: %1$d; UTF-16 length: %2$d.</string>
+</resources>

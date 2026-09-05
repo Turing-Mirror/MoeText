@@ -1,6 +1,7 @@
 package com.turingmirror.moetext.engine
 
 object TransformEngine {
+    private val pronouns = Regex("我们|你们|我|你")
 
     fun transform(
         original: String,
@@ -14,10 +15,14 @@ object TransformEngine {
         val trailing = original.takeLastWhile { it.isWhitespace() }
         var text = original.trim()
 
-        if (config.woMenToBenmiaoMen) text = ReplaceRule("我们", "本喵们").transform(text)
-        if (config.niMenToZhurenMen) text = ReplaceRule("你们", "主人们").transform(text)
-        if (config.woToBenmiao) text = ReplaceRule("我", "本喵").transform(text)
-        if (config.niToZhuren) text = ReplaceRule("你", "主人").transform(text)
+        text = pronouns.replace(text) { match ->
+            when (match.value) {
+                "我们" -> if (config.woMenToBenmiaoMen) "本喵们" else match.value
+                "你们" -> if (config.niMenToZhurenMen) "主人们" else match.value
+                "我" -> if (config.woToBenmiao) "本喵" else match.value
+                else -> if (config.niToZhuren) "主人" else match.value
+            }
+        }
         for (r in config.customReplaces) {
             if (r.enabled && r.from.isNotEmpty()) text = ReplaceRule(r.from, r.to).transform(text)
         }
