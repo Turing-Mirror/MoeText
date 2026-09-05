@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">MoeText</string>
-    <string name="accessibility_desc">MoeText uses accessibility access to read and update the QQ chat input field. Internet access is used only to check for updates. Chat content is not uploaded.</string>
-    <string name="warning_text">This tool changes message text through an accessibility service. Use may violate the target application’s terms and could result in account restrictions. Evaluate this risk before use. This project is not affiliated with Tencent.</string>
-</resources>
