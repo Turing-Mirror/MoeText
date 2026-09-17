@@ -9,7 +9,7 @@ import org.json.JSONObject
 
 object ConfigStore {
 
-    private const val PREFS = "moetext_config"
+    internal const val PREFS = "moetext_config"
     private const val KEY_REALTIME = "realtime_mode"
     private const val KEY_WO = "wo_to_benmiao"
     private const val KEY_NI = "ni_to_zhuren"

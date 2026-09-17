@@ -8,7 +8,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
-import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -86,21 +85,21 @@ import com.turingmirror.moetext.engine.AppConfig
 import com.turingmirror.moetext.engine.CustomReplace
 import com.turingmirror.moetext.engine.PickMode
 import com.turingmirror.moetext.engine.TransformEngine
+import com.turingmirror.moetext.service.MoeAccessibilityService
 import com.turingmirror.moetext.update.UpdateChecker
 import com.turingmirror.moetext.update.UpdateInfo
 import com.turingmirror.moetext.ui.theme.MoeTheme
 import dev.chrisbanes.haze.rememberHazeState
 
-private const val PREFS_NAME = "moetext_config"
 private const val KEY_AUTO_UPDATE = "auto_update"
 private const val REPLACE_PAGE_SIZE = 20
 
 private fun autoUpdateEnabled(context: Context): Boolean =
-    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    context.getSharedPreferences(ConfigStore.PREFS, Context.MODE_PRIVATE)
         .getBoolean(KEY_AUTO_UPDATE, true)
 
 private fun setAutoUpdate(context: Context, value: Boolean) {
-    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    context.getSharedPreferences(ConfigStore.PREFS, Context.MODE_PRIVATE)
         .edit().putBoolean(KEY_AUTO_UPDATE, value).apply()
 }
 
@@ -143,11 +142,7 @@ class MainActivity : ComponentActivity() {
         } catch (e: Exception) {
             false
         }
-        serviceConnected.value = runCatching { connectedServiceRunning() }.getOrDefault(false)
-    }
-
-    private fun connectedServiceRunning(): Boolean {
-        return com.turingmirror.moetext.service.MoeAccessibilityService.connected
+        serviceConnected.value = MoeAccessibilityService.connected
     }
 
     private fun requestIgnoreBatteryOptimization() {
@@ -381,7 +376,7 @@ private fun ServiceDiagPanel() {
     var lines by remember { mutableStateOf(listOf<String>()) }
     LaunchedEffect(Unit) {
         while (true) {
-            lines = com.turingmirror.moetext.service.MoeAccessibilityService.snapshotLogs()
+            lines = MoeAccessibilityService.snapshotLogs()
             kotlinx.coroutines.delay(500)
         }
     }
@@ -424,6 +419,7 @@ private fun AboutPanel() {
     }
     var offer by remember { mutableStateOf<UpdateInfo?>(null) }
     var auto by remember { mutableStateOf(autoUpdateEnabled(context)) }
+    var autoChecked by rememberSaveable { mutableStateOf(false) }
 
     fun performCheck() {
         busy = true
@@ -444,7 +440,11 @@ private fun AboutPanel() {
     }
 
     LaunchedEffect(Unit) {
-        if (auto) performCheck()
+        // 页签切换会重建本面板，自动检查每会话只做一次。
+        if (auto && !autoChecked) {
+            autoChecked = true
+            performCheck()
+        }
     }
 
     PanelCard {

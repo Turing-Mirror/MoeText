@@ -2,10 +2,6 @@ package com.turingmirror.moetext.engine
 
 import java.util.Random
 
-interface TransformRule {
-    fun transform(input: String): String
-}
-
 data class CustomReplace(
     val enabled: Boolean = true,
     val from: String = "",
@@ -47,19 +43,14 @@ data class AppConfig(
     }
 }
 
-class ReplaceRule(private val from: String, private val to: String) : TransformRule {
-    override fun transform(input: String): String =
-        if (from.isEmpty()) input else input.replace(from, to)
-}
-
 class SentenceSuffixRule(
     private val candidates: List<String>,
     private val pickMode: PickMode,
     private val seqIndex: Int,
     private val includeTrailingSegment: Boolean = true
-) : TransformRule {
+) {
 
-    override fun transform(input: String): String {
+    fun transform(input: String): String {
         val suffix = pickFrom(candidates, pickMode, seqIndex)
         if (suffix.isEmpty()) return input
         return applySuffix(input, suffix)
@@ -100,29 +91,6 @@ class SentenceSuffixRule(
             }
         }
 
-        private val RNG = Random()
-    }
-}
-
-class TailRule(
-    private val candidates: List<String>,
-    private val pickMode: PickMode,
-    private val seqIndex: Int
-) : TransformRule {
-    override fun transform(input: String): String {
-        val picked = SentenceSuffixRule.pickFrom(candidates, pickMode, seqIndex)
-        return if (picked.isEmpty()) input else "$input $picked"
-    }
-}
-
-class RandomTailRule(private val pool: List<String>) : TransformRule {
-    override fun transform(input: String): String {
-        if (pool.isEmpty()) return input
-        val pick = pool[RNG.nextInt(pool.size)]
-        return if (pick.isEmpty()) input else "$input $pick"
-    }
-
-    companion object {
         private val RNG = Random()
     }
 }

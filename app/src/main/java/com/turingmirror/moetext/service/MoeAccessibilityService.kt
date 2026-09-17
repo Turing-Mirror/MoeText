@@ -60,7 +60,7 @@ class MoeAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         connected = true
-        getSharedPreferences("moetext_config", MODE_PRIVATE)
+        getSharedPreferences(ConfigStore.PREFS, MODE_PRIVATE)
             .registerOnSharedPreferenceChangeListener(preferenceListener)
         serviceInfo = serviceInfo.apply {
             eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
@@ -71,7 +71,8 @@ class MoeAccessibilityService : AccessibilityService() {
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             flags = AccessibilityServiceInfo.DEFAULT or
                 AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
-                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
+                AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
             notificationTimeout = 0
             packageNames = ChatTargets.packages.toTypedArray()
         }
@@ -333,13 +334,17 @@ class MoeAccessibilityService : AccessibilityService() {
         }
     }
 
-    override fun onInterrupt() { stopEditor() }
+    override fun onInterrupt() {
+        diag("interrupt")
+        stopEditor()
+    }
 
     private fun shutdown() {
         connected = false
-        getSharedPreferences("moetext_config", MODE_PRIVATE)
+        getSharedPreferences(ConfigStore.PREFS, MODE_PRIVATE)
             .unregisterOnSharedPreferenceChangeListener(preferenceListener)
         stopEditor(clearDraft = true)
+        diag("disconnected")
     }
 
     override fun onUnbind(intent: Intent?): Boolean { shutdown(); return super.onUnbind(intent) }
