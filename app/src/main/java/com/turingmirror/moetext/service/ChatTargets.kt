@@ -16,4 +16,14 @@ object ChatTargets {
             hint.startsWith("发送消息") || hint.startsWith("傳送訊息") ||
             hint.startsWith("发信息") || hint.startsWith("向 #") || hint.startsWith("向 @")
     }
+
+    /**
+     * 各目标应用输入框的完整 viewId，给 `findAccessibilityNodeInfosByViewId` 兜底用。
+     * 焦点标志在部分 ROM 上不可靠 —— 输入框仍在，但不再报 FOCUS_INPUT。
+     */
+    fun viewIdsFor(packageName: String?): List<String> = when (packageName) {
+        "com.discord" -> discordIds.map { "$packageName:id/$it" }
+        in packages -> listOf("$packageName:id/input")
+        else -> emptyList()
+    }
 }

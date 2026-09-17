@@ -134,6 +134,15 @@ class MoeAccessibilityService : AccessibilityService() {
                 if (outsideTarget) stopEditor() else retry("editor unavailable")
                 return
             }
+            // 快照是 bind 时刻的，读到此刻之间视图可能已经更新 —— 不 refresh
+            // 就 text 拿到 null 是部分 ROM 的常态。refresh 失败说明句柄已死，
+            // 丢掉让下一轮重新走窗口查找，而不是对着死句柄反复空转。
+            if (!node.refresh()) {
+                editor?.recycle()
+                editor = null
+                retry("editor stale")
+                return
+            }
             val rich = if (Build.VERSION.SDK_INT >= 26 && node.isShowingHintText) ""
                 else node.text ?: run { retry("text unavailable"); return }
             val text = rich.toString()
@@ -225,6 +234,10 @@ class MoeAccessibilityService : AccessibilityService() {
         if (retries < MAX_RETRIES) {
             retries++
             schedule(40L * retries)
+        } else if (SystemClock.uptimeMillis() < burstUntil) {
+            // 快速重试打完但还在输入风暴里：降速续命。否则三次失败之后
+            // 这条消息就只能等下一个事件 —— 用户看到的就是「第一次可以，后面萎了」。
+            schedule(POLL_MS * 3)
         }
     }
 
@@ -247,7 +260,9 @@ class MoeAccessibilityService : AccessibilityService() {
             text.getSpans(0, text.length, ClickableSpan::class.java).isNotEmpty())
 
     private fun isComposer(node: AccessibilityNodeInfo): Boolean {
-        if (!node.isEditable || !node.isFocused || !node.isEnabled || node.isPassword ||
+        // 不查 isFocused：ColorOS / MIUI 上写回后焦点标志会短暂抖动，
+        // 但 viewId / hint 已经足够确定这是聊天输入框，不该因焦点丢标而失明。
+        if (!node.isEditable || !node.isEnabled || node.isPassword ||
             !node.isVisibleToUser || node.packageName?.toString() !in ChatTargets.packages) return false
         val label = if (Build.VERSION.SDK_INT >= 26) node.hintText?.toString()?.takeIf { it.isNotBlank() } else null
         return ChatTargets.matches(node.packageName?.toString(), node.viewIdResourceName,
@@ -256,23 +271,50 @@ class MoeAccessibilityService : AccessibilityService() {
 
     private fun findEditor(): AccessibilityNodeInfo? {
         outsideTarget = false
-        val root = rootInActiveWindow ?: return null
+        // 活跃窗口优先；键盘或弹窗短暂抢走活跃窗口时，目标应用的窗口仍在
+        // windows 列表里，不能只问 rootInActiveWindow 一个。
+        val roots = ArrayList<AccessibilityNodeInfo>()
+        rootInActiveWindow?.let(roots::add)
+        if (Build.VERSION.SDK_INT >= 24) {
+            for (w in windows) {
+                val r = w.root ?: continue
+                if (r.packageName?.toString() !in ChatTargets.packages ||
+                    roots.any { it.windowId == r.windowId }) r.recycle() else roots.add(r)
+            }
+        }
+        if (roots.isEmpty()) return null
+        var anyTarget = false
         try {
-            if (root.packageName?.toString() !in ChatTargets.packages) {
-                outsideTarget = true
-                return null
+            for (root in roots) {
+                val pkg = root.packageName?.toString()
+                if (pkg !in ChatTargets.packages) continue
+                anyTarget = true
+                editor?.let {
+                    if (it.windowId == root.windowId && it.refresh() && isComposer(it)) return it
+                }
+                root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.let { focused ->
+                    try {
+                        if (isComposer(focused)) { bind(focused); return editor }
+                    } finally { focused.recycle() }
+                }
+                // 焦点报告不稳的 ROM：输入框健在但不报 FOCUS_INPUT，按 viewId 兜底。
+                for (id in ChatTargets.viewIdsFor(pkg)) {
+                    val candidates = root.findAccessibilityNodeInfosByViewId(id) ?: continue
+                    var hit: AccessibilityNodeInfo? = null
+                    for (c in candidates) {
+                        if (hit == null && isComposer(c)) hit = c else c.recycle()
+                    }
+                    if (hit != null) {
+                        try {
+                            bind(hit)
+                        } finally { hit.recycle() }
+                        return editor
+                    }
+                }
             }
-            editor?.let {
-                if (it.windowId == root.windowId && it.refresh() && isComposer(it)) return it
-            }
-            val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
-            if (focused != null) {
-                try {
-                    if (isComposer(focused)) { bind(focused); return editor }
-                } finally { focused.recycle() }
-            }
+            outsideTarget = !anyTarget
             return null
-        } finally { root.recycle() }
+        } finally { roots.forEach { it.recycle() } }
     }
 
     private fun stopEditor(clearDraft: Boolean = false) {
