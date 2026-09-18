@@ -40,7 +40,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -546,6 +545,13 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         emoticons = lines(emoticonRaw).ifEmpty { AppConfig.BUILTIN_EMOTICONS }
     )
 
+    // 所有改动即时生效：无障碍服务读的是 SharedPreferences，
+    // 只更新内存状态会让「已拨过去的开关」实际上没有作用。
+    fun update(c: AppConfig) {
+        onConfig(c)
+        onPersist(c)
+    }
+
     val draft = merged()
     val selectedStyle = remember(draft) {
         StylePresets.BUILTIN.find { StylePresets.apply(draft, it.config) == draft }?.name ?: "自定义"
@@ -588,8 +594,7 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
                     suffixRaw = applied.sentenceSuffixes.joinToString("\n")
                     tailRaw = applied.tails.joinToString("\n")
                     emoticonRaw = applied.emoticons.joinToString("\n")
-                    onConfig(applied)
-                    onPersist(applied)
+                    update(applied)
                     Toast.makeText(context, "风格已导入并保存", Toast.LENGTH_SHORT).show()
                 }.onFailure {
                     Toast.makeText(context, "导入失败：文件无效、过大或无法读取", Toast.LENGTH_SHORT).show()
@@ -603,8 +608,7 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         suffixRaw = applied.sentenceSuffixes.joinToString("\n")
         tailRaw = applied.tails.joinToString("\n")
         emoticonRaw = applied.emoticons.joinToString("\n")
-        onConfig(applied)
-        onPersist(applied)
+        update(applied)
         Toast.makeText(context, "已切换到「$name」", Toast.LENGTH_SHORT).show()
     }
 
@@ -641,13 +645,13 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         SectionTitle("快捷替换")
         Spacer(Modifier.height(8.dp))
         PanelCard {
-            SwitchRow("我 → 本喵", config.woToBenmiao) { onConfig(config.copy(woToBenmiao = it)) }
+            SwitchRow("我 → 本喵", config.woToBenmiao) { update(config.copy(woToBenmiao = it)) }
             Spacer(Modifier.height(4.dp))
-            SwitchRow("我们 → 本喵们", config.woMenToBenmiaoMen) { onConfig(config.copy(woMenToBenmiaoMen = it)) }
+            SwitchRow("我们 → 本喵们", config.woMenToBenmiaoMen) { update(config.copy(woMenToBenmiaoMen = it)) }
             Spacer(Modifier.height(4.dp))
-            SwitchRow("你们 → 主人们", config.niMenToZhurenMen) { onConfig(config.copy(niMenToZhurenMen = it)) }
+            SwitchRow("你们 → 主人们", config.niMenToZhurenMen) { update(config.copy(niMenToZhurenMen = it)) }
             Spacer(Modifier.height(4.dp))
-            SwitchRow("你 → 主人", config.niToZhuren) { onConfig(config.copy(niToZhuren = it)) }
+            SwitchRow("你 → 主人", config.niToZhuren) { update(config.copy(niToZhuren = it)) }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -681,12 +685,12 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
                             modifier = Modifier.weight(1f)
                         )
                         GlassSwitch(checked = rule.enabled, onCheckedChange = {
-                            onConfig(config.copy(customReplaces = config.customReplaces.toMutableList().apply {
+                            update(config.copy(customReplaces = config.customReplaces.toMutableList().apply {
                                 set(index, rule.copy(enabled = it))
                             }))
                         })
                         IconButton(onClick = {
-                            onConfig(config.copy(customReplaces = config.customReplaces.filterIndexed { idx, _ -> idx != index }))
+                            update(config.copy(customReplaces = config.customReplaces.filterIndexed { idx, _ -> idx != index }))
                         }) {
                             Icon(
                                 Icons.Default.Close,
@@ -755,12 +759,12 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         Spacer(Modifier.height(8.dp))
         PanelCard {
             SwitchRow("在每句末尾追加后缀", config.sentenceSuffixEnabled) {
-                onConfig(config.copy(sentenceSuffixEnabled = it))
+                update(config.copy(sentenceSuffixEnabled = it))
             }
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
                 value = suffixRaw,
-                onValueChange = { suffixRaw = it },
+                onValueChange = { suffixRaw = it; update(merged()) },
                 label = { Text("后缀库（每行一个，顺序轮换或随机抽取）") },
                 placeholder = { Text("喵\n nya~") },
                 minLines = 2,
@@ -770,7 +774,7 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
             )
             Spacer(Modifier.height(8.dp))
             PickModeRow(config.sentenceSuffixPick) {
-                onConfig(merged().copy(sentenceSuffixPick = it))
+                update(merged().copy(sentenceSuffixPick = it))
             }
         }
 
@@ -779,12 +783,12 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         Spacer(Modifier.height(8.dp))
         PanelCard {
             SwitchRow("在整条消息末尾追加尾缀", config.tailEnabled) {
-                onConfig(config.copy(tailEnabled = it))
+                update(config.copy(tailEnabled = it))
             }
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
                 value = tailRaw,
-                onValueChange = { tailRaw = it },
+                onValueChange = { tailRaw = it; update(merged()) },
                 label = { Text("尾缀库（每行一个，顺序轮换或随机抽取）") },
                 placeholder = { Text("哦齁齁齁❤️\n 喵呜～") },
                 minLines = 2,
@@ -794,7 +798,7 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
             )
             Spacer(Modifier.height(8.dp))
             PickModeRow(config.tailPick) {
-                onConfig(merged().copy(tailPick = it))
+                update(merged().copy(tailPick = it))
             }
         }
 
@@ -803,12 +807,12 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         Spacer(Modifier.height(8.dp))
         PanelCard {
             SwitchRow("在消息末尾追加随机颜文字", config.emoticonEnabled) {
-                onConfig(config.copy(emoticonEnabled = it))
+                update(config.copy(emoticonEnabled = it))
             }
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(
                 value = emoticonRaw,
-                onValueChange = { emoticonRaw = it },
+                onValueChange = { emoticonRaw = it; update(merged()) },
                 label = { Text("颜文字库（每行一个，留空使用内置库）") },
                 minLines = 3,
                 maxLines = 6,
@@ -818,25 +822,12 @@ private fun RulesTab(config: AppConfig, onConfig: (AppConfig) -> Unit, onPersist
         }
 
         Spacer(Modifier.height(22.dp))
-        Button(
-            onClick = {
-                val finalConfig = merged()
-                onConfig(finalConfig)
-                onPersist(finalConfig)
-                Toast.makeText(context, "设置已保存", Toast.LENGTH_SHORT).show()
-            },
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("保存设置")
-        }
-        Spacer(Modifier.height(30.dp))
 
         if (showAddDialog) {
             AddReplaceDialog(
                 onDismiss = { showAddDialog = false },
                 onConfirm = { from, to ->
-                    onConfig(config.copy(customReplaces = config.customReplaces + CustomReplace(true, from, to)))
+                    update(config.copy(customReplaces = config.customReplaces + CustomReplace(true, from, to)))
                     showAddDialog = false
                 }
             )
