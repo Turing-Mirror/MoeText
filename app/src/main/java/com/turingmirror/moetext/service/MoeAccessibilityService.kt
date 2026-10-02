@@ -46,8 +46,7 @@ class MoeAccessibilityService : AccessibilityService() {
     /** Latest text announced by the bound composer's own text events. */
     private var eventText: String? = null
     private var eventTextAt = 0L
-    /** Composer ids found through the layout fallback, used for later lookups by id. */
-    private val learnedIds = HashMap<String, MutableSet<String>>()
+    private val recognizer = ComposerRecognizer()
     private var observed = ""
     private var changedAt = 0L
     private var burstUntil = 0L
@@ -172,8 +171,8 @@ class MoeAccessibilityService : AccessibilityService() {
                 if (now < burstUntil) schedule(COMPOSING_POLL_MS)
                 return
             }
-            if (ComposerText.hasRichTokens(rich)) {
-                diag("input: rich mention")
+            if (ComposerText.hasRichTokens(rich) || ChatTargets.holdsMention(node.packageName?.toString(), text)) {
+                diag("input: mention")
                 return
             }
             val complete = config.realtimeMode || now - changedAt >= QUIET_MS
@@ -279,14 +278,14 @@ class MoeAccessibilityService : AccessibilityService() {
             pkg !in ChatTargets.packages) return null
         val label = if (Build.VERSION.SDK_INT >= 26) node.hintText?.toString()?.takeIf { it.isNotBlank() } else null
         val description = label ?: node.contentDescription?.toString()
-        ChatTargets.match(pkg, node.viewIdResourceName, description)?.let { return it }
-        if (!ChatTargets.usesLayoutFallback(pkg) || !node.isMultiLine) return null
+        recognizer.match(pkg, node.viewIdResourceName, description)?.let { return it }
+        if (!recognizer.layoutAllowed(pkg) || !node.isMultiLine) return null
         val bounds = Rect().also(node::getBoundsInScreen)
         val window = windowBounds(node)
         if (!ChatTargets.matchesLayout(pkg, description, node.className?.toString(), node.isMultiLine,
                 bounds.top, window.top, window.bottom)) return null
         node.viewIdResourceName?.let { id ->
-            if (learnedIds.getOrPut(pkg!!) { HashSet() }.add(id)) diag("learned id: ${id.substringAfterLast('/')}")
+            if (recognizer.learn(pkg!!, id)) diag("learned id: ${id.substringAfterLast('/')}")
         }
         return ComposerMatch.LAYOUT
     }
@@ -344,8 +343,7 @@ class MoeAccessibilityService : AccessibilityService() {
         }
         // Some ROMs stop reporting input focus while the composer is still on screen.
         val pkg = root.packageName?.toString() ?: return null
-        val ids = ChatTargets.viewIdsFor(pkg) + learnedIds[pkg].orEmpty()
-        for (id in ids) {
+        for (id in recognizer.lookupIds(pkg)) {
             val candidates = root.findAccessibilityNodeInfosByViewId(id) ?: continue
             var hit: AccessibilityNodeInfo? = null
             for (c in candidates) {

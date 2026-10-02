@@ -33,6 +33,24 @@ class ChatTargetsTest {
         assertFalse(layout(pkg = "com.discord"))
     }
 
+    @Test fun layoutFallbackStopsOnceTheComposerIdIsSeen() {
+        val recognizer = ComposerRecognizer()
+        assertTrue(recognizer.layoutAllowed(qq))
+        assertTrue(recognizer.learn(qq, "$qq:id/mjx"))
+        assertEquals(listOf("$qq:id/input", "$qq:id/mjx"), recognizer.lookupIds(qq))
+        assertEquals(ComposerMatch.ID, recognizer.match(qq, "$qq:id/input", null))
+        assertFalse(recognizer.layoutAllowed(qq))
+        assertFalse(recognizer.learn(qq, "$qq:id/comment"))
+        assertEquals(listOf("$qq:id/input"), recognizer.lookupIds(qq))
+        assertTrue(recognizer.layoutAllowed("com.tencent.mobileqqi"))
+    }
+
+    @Test fun qqMessagesWithMentionsStayUntouched() {
+        assertTrue(ChatTargets.holdsMention(qq, "@张三 晚上好"))
+        assertFalse(ChatTargets.holdsMention(qq, "晚上好"))
+        assertFalse(ChatTargets.holdsMention("com.discord", "@someone hi"))
+    }
+
     @Test fun viewIdsAreQualifiedWithThePackage() {
         assertEquals(listOf("$qq:id/input"), ChatTargets.viewIdsFor(qq))
         assertTrue(ChatTargets.viewIdsFor("com.example").isEmpty())

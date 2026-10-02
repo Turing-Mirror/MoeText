@@ -6,13 +6,15 @@ enum class ComposerMatch { ID, HINT, LAYOUT }
 /**
  * One chat app. [composerIds] are resource entry names. [layoutFallback] also accepts a
  * multi-line text field docked in the lower part of the window, for builds whose
- * resource names are shortened or renamed.
+ * resource names are shortened or renamed. Messages containing [mentionMarker] stay
+ * untouched, because plain text written back would drop the app's mention data.
  */
 data class ChatApp(
     val packages: Set<String>,
     val composerIds: Set<String>,
     val hintPrefixes: List<String> = emptyList(),
-    val layoutFallback: Boolean = false
+    val layoutFallback: Boolean = false,
+    val mentionMarker: Char? = null
 )
 
 /** App-specific composer recognition, shared by event and snapshot handling. */
@@ -21,7 +23,8 @@ object ChatTargets {
         ChatApp(
             packages = setOf("com.tencent.mobileqq", "com.tencent.mobileqqi"),
             composerIds = setOf("input"),
-            layoutFallback = true
+            layoutFallback = true,
+            mentionMarker = '@'
         ),
         ChatApp(
             packages = setOf("com.discord"),
@@ -48,6 +51,9 @@ object ChatTargets {
         if (app.hintPrefixes.any { hint == it.trimEnd() || hint.startsWith(it) }) return ComposerMatch.HINT
         return null
     }
+
+    fun holdsMention(packageName: String?, text: String): Boolean =
+        appFor(packageName)?.mentionMarker?.let { it in text } == true
 
     fun usesLayoutFallback(packageName: String?): Boolean = appFor(packageName)?.layoutFallback == true
 
