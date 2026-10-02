@@ -1,4 +1,4 @@
-package com.turingmirror.moetext
+package com.turingmirror.moetext.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -14,11 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.turingmirror.moetext.R
 import com.turingmirror.moetext.engine.BidiTools
 import com.turingmirror.moetext.ui.theme.glassContentPadding
 
 @Composable
-fun UnicodeTab() {
+internal fun UnicodeTab() {
     var base by rememberSaveable { mutableStateOf("千早爱音") }
     var ending by rememberSaveable { mutableStateOf("喵～") }
     var pasted by rememberSaveable { mutableStateOf("") }
