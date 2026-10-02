@@ -1,7 +1,7 @@
 package com.turingmirror.moetext.engine
 
 /** This editor's provenance; no reverse dictionary or global decoration stripping. */
-class ChatDraft {
+class ChatDraft(private val historySize: Int = 32) {
     private var original = ""
     private var frozen = BooleanArray(0)
     private var surface = MappedText.original("")
@@ -11,6 +11,14 @@ class ChatDraft {
     private var sequence = 0
     private var pending: MappedText? = null
     private var accepted: MappedText? = null
+
+    private class State(val original: String, val frozen: BooleanArray, val surface: MappedText,
+        val choicesFor: AppConfig?, val choices: AppConfig?, val suppressDecorations: Boolean)
+
+    /** Rendered messages by text, so a chat draft the app restores later is recognized as ours. */
+    private val history = object : LinkedHashMap<String, State>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, State>?) = size > historySize
+    }
 
     data class Result(val text: String, val selectionStart: Int, val selectionEnd: Int)
 
@@ -36,12 +44,7 @@ class ChatDraft {
             if (it.text == text) return
         }
         accepted = null
-        if (surface.text.isEmpty()) {
-            original = text
-            frozen = BooleanArray(text.length)
-            surface = MappedText.original(text)
-            return
-        }
+        if (surface.text.isEmpty()) { adopt(text); return }
         val previous = surface.text
         var begin = 0
         while (begin < minOf(previous.length, text.length) && previous[begin] == text[begin]) begin++
@@ -53,6 +56,13 @@ class ChatDraft {
         }
         if (oldEnd < previous.length && oldEnd > begin && previous[oldEnd].isLowSurrogate()) {
             oldEnd++; newEnd++
+        }
+        // Nothing in common with a rendered message: the editor now holds another message,
+        // such as a restored chat draft or a cleared box whose event never arrived.
+        if (begin == 0 && oldEnd == previous.length && previous != original) {
+            reset()
+            adopt(text)
+            return
         }
         var left = begin
         var right = oldEnd
@@ -79,10 +89,27 @@ class ChatDraft {
         pending = null
     }
 
+    private fun adopt(text: String) {
+        val saved = history[text]
+        if (saved == null) {
+            original = text
+            frozen = BooleanArray(text.length)
+            surface = MappedText.original(text)
+        } else {
+            original = saved.original
+            frozen = saved.frozen
+            surface = saved.surface
+            choicesFor = saved.choicesFor
+            choices = saved.choices
+            suppressDecorations = saved.suppressDecorations
+        }
+        pending = null
+    }
+
     fun render(config: AppConfig, complete: Boolean, selectionStart: Int, selectionEnd: Int): Result {
         if (choicesFor != config) {
             fun pick(pool: List<String>, mode: PickMode): List<String> =
-                listOf(SentenceSuffixRule.pickFrom(pool, mode, sequence))
+                listOf(Picker.pick(pool, mode, sequence))
             choices = config.copy(
                 sentenceSuffixes = pick(config.sentenceSuffixes, config.sentenceSuffixPick),
                 sentenceSuffixPick = PickMode.SEQUENTIAL,
@@ -96,10 +123,20 @@ class ChatDraft {
             tailEnabled = false, emoticonEnabled = false) else selected
         val next = TransformEngine.render(original, active, true, 0, complete, frozen)
         pending = next
+        if (next.text == surface.text) remember(next)
         fun selection(offset: Int) = if (offset < 0) -1 else next.displayOffset(surface.sourceOffset(offset))
         return Result(next.text, selection(selectionStart), selection(selectionEnd))
     }
 
     /** Accepted actions can become visible on a later accessibility snapshot. */
-    fun written() { accepted = pending; pending = null }
+    fun written() {
+        accepted = pending
+        pending = null
+        accepted?.let(::remember)
+    }
+
+    private fun remember(rendered: MappedText) {
+        if (rendered.text == original) return
+        history[rendered.text] = State(original, frozen, rendered, choicesFor, choices, suppressDecorations)
+    }
 }

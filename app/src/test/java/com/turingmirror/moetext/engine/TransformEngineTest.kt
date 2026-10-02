@@ -1,6 +1,7 @@
 package com.turingmirror.moetext.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -81,5 +82,34 @@ class TransformEngineTest {
                 completeMessage = false
             )
         )
+    }
+
+    private val suffixOnly = AppConfig(sentenceSuffixEnabled = true, sentenceSuffixes = listOf("喵"),
+        emoticonEnabled = false)
+
+    @Test
+    fun partialSentenceNeverDropsRemainder() {
+        fun partial(text: String) = TransformEngine.transform(text, suffixOnly, false, completeMessage = false)
+        assertEquals("第一句喵。第二句未完成", partial("第一句。第二句未完成"))
+        assertEquals("hello world", partial("hello world"))
+        assertEquals("你好喵？后文", partial("你好？后文"))
+    }
+
+    @Test
+    fun qqFaceCodesAreNeverSplit() {
+        // U+0014 plus a face id; ids such as ',', '?' and ' ' look like punctuation or spaces.
+        assertEquals("好\u0014,喵", TransformEngine.transform("好\u0014,", suffixOnly, false))
+        assertEquals("你好\u0014 喵", TransformEngine.transform("你好\u0014 ", suffixOnly, false))
+        assertEquals("嗯喵，\u0014?喵", TransformEngine.transform("嗯，\u0014?", suffixOnly, false))
+        val question = suffixOnly.copy(sentenceSuffixEnabled = false,
+            customReplaces = listOf(CustomReplace(true, "?", "？")))
+        assertEquals("吗？\u0014?", TransformEngine.transform("吗?\u0014?", question, false))
+    }
+
+    @Test
+    fun pictographicTextHasNoLettersOutsideFaces() {
+        assertTrue(TextUnits.isPictographic("😀"))
+        assertTrue(TextUnits.isPictographic("\u0014A"))
+        assertFalse(TextUnits.isPictographic("@张三"))
     }
 }

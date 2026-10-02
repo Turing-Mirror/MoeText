@@ -17,7 +17,8 @@ object TransformEngine {
         frozen: BooleanArray = BooleanArray(original.length)): MappedText {
         var mapped = MappedText.original(original)
         if (original.isBlank()) return mapped
-        mapped = mapped.replace(pronouns.findAll(mapped.text).map { match ->
+        // Patterns run on a masked copy so they never split a QQ face code.
+        mapped = mapped.replace(pronouns.findAll(TextUnits.mask(mapped.text)).map { match ->
             match.range to when (match.value) {
                 "我们" -> if (config.woMenToBenmiaoMen) "本喵们" else match.value
                 "你们" -> if (config.niMenToZhurenMen) "主人们" else match.value
@@ -27,26 +28,28 @@ object TransformEngine {
         }.toList(), frozen)
         for (rule in config.customReplaces) {
             if (!rule.enabled || rule.from.isEmpty()) continue
+            val text = TextUnits.mask(mapped.text)
             val edits = ArrayList<Pair<IntRange, String>>()
-            var start = mapped.text.indexOf(rule.from)
+            var start = text.indexOf(rule.from)
             while (start >= 0) {
                 edits.add((start until start + rule.from.length) to rule.to)
-                start = mapped.text.indexOf(rule.from, start + rule.from.length)
+                start = text.indexOf(rule.from, start + rule.from.length)
             }
             mapped = mapped.replace(edits, frozen)
         }
         if (config.sentenceSuffixEnabled) {
-            val suffix = SentenceSuffixRule.pickFrom(config.sentenceSuffixes, config.sentenceSuffixPick, seqIndex)
+            val text = TextUnits.mask(mapped.text)
+            val suffix = Picker.pick(config.sentenceSuffixes, config.sentenceSuffixPick, seqIndex)
             val edits = ArrayList<Pair<IntRange, String>>()
             var start = 0
-            for (match in separators.findAll(mapped.text)) {
-                if (mapped.text.substring(start, match.range.first).isNotBlank()) {
+            for (match in separators.findAll(text)) {
+                if (text.substring(start, match.range.first).isNotBlank()) {
                     edits.add((match.range.first until match.range.first) to suffix)
                 }
                 start = match.range.last + 1
             }
-            val end = mapped.text.trimEnd().length
-            if (completeMessage && start < end && mapped.text.substring(start, end).isNotBlank()) {
+            val end = text.trimEnd().length
+            if (completeMessage && start < end && text.substring(start, end).isNotBlank()) {
                 edits.add((end until end) to suffix)
             }
             mapped = mapped.replace(edits, frozen)
@@ -54,7 +57,7 @@ object TransformEngine {
         if (completeMessage) {
             val tail = buildString {
                 if (config.tailEnabled) {
-                    val picked = SentenceSuffixRule.pickFrom(config.tails, config.tailPick, seqIndex)
+                    val picked = Picker.pick(config.tails, config.tailPick, seqIndex)
                     if (picked.isNotEmpty()) append(" $picked")
                 }
                 if (config.emoticonEnabled && allowRandomTail) {
@@ -62,7 +65,7 @@ object TransformEngine {
                     if (picked != null) append(" $picked")
                 }
             }
-            val end = mapped.text.trimEnd().length
+            val end = TextUnits.mask(mapped.text).trimEnd().length
             mapped = mapped.replace(listOf((end until end) to tail), frozen)
         }
         return mapped

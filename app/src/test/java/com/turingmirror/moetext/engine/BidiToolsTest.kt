@@ -18,11 +18,6 @@ class BidiToolsTest {
         assertEquals("", BidiTools.closure("\u2067abc\n"))
         assertEquals("甲\n乙😀", BidiTools.clean(BidiTools.protect("\u2067", "甲\n乙😀")))
     }
-    @Test fun partialSentenceNeverDropsRemainder() {
-        assertEquals("第一句喵。第二句未完成", SentenceSuffixRule(listOf("喵"), PickMode.SEQUENTIAL, 0, false).transform("第一句。第二句未完成"))
-        assertEquals("hello world", SentenceSuffixRule(listOf("喵"), PickMode.SEQUENTIAL, 0, false).transform("hello world"))
-        assertEquals("你好喵？后文", SentenceSuffixRule(listOf("喵"), PickMode.SEQUENTIAL, 0, false).transform("你好？后文"))
-    }
     @Test fun reversalPreservesSurrogatePairs() {
         assertEquals("A \u2067\u202D\u2067～😀\u2067\u202D\u00A0", BidiTools.nickname("A", "😀～"))
     }

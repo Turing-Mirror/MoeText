@@ -43,54 +43,16 @@ data class AppConfig(
     }
 }
 
-class SentenceSuffixRule(
-    private val candidates: List<String>,
-    private val pickMode: PickMode,
-    private val seqIndex: Int,
-    private val includeTrailingSegment: Boolean = true
-) {
+/** Picks one entry of a library; [index] drives sequential rotation. */
+object Picker {
+    private val rng = Random()
 
-    fun transform(input: String): String {
-        val suffix = pickFrom(candidates, pickMode, seqIndex)
-        if (suffix.isEmpty()) return input
-        return applySuffix(input, suffix)
-    }
-
-    private fun applySuffix(input: String, suffix: String): String {
-        if (suffix.isEmpty()) return input
-        val sb = StringBuilder()
-        var last = 0
-        for (m in separators.findAll(input)) {
-            val seg = input.substring(last, m.range.first)
-            sb.append(seg)
-            if (seg.isNotBlank()) {
-                sb.append(suffix)
-            }
-            sb.append(m.value)
-            last = m.range.last + 1
+    fun pick(pool: List<String>, mode: PickMode, index: Int): String {
+        val cleaned = pool.map { it.trim() }.filter { it.isNotEmpty() }
+        if (cleaned.isEmpty()) return ""
+        return when (mode) {
+            PickMode.SEQUENTIAL -> cleaned[Math.floorMod(index, cleaned.size)]
+            PickMode.RANDOM -> cleaned[rng.nextInt(cleaned.size)]
         }
-        if (last < input.length) {
-            val seg = input.substring(last)
-            sb.append(seg)
-            if (includeTrailingSegment && seg.isNotBlank()) {
-                sb.append(suffix)
-            }
-        }
-        val result = sb.toString()
-        return result.ifEmpty { input }
-    }
-
-    companion object {
-        private val separators = Regex("([，,。！!？?；;：:\\n]+)")
-        fun pickFrom(pool: List<String>, pickMode: PickMode, seqIndex: Int): String {
-            val cleaned = pool.map { it.trim() }.filter { it.isNotEmpty() }
-            if (cleaned.isEmpty()) return ""
-            return when (pickMode) {
-                PickMode.SEQUENTIAL -> cleaned[Math.floorMod(seqIndex, cleaned.size)]
-                PickMode.RANDOM -> cleaned[RNG.nextInt(cleaned.size)]
-            }
-        }
-
-        private val RNG = Random()
     }
 }

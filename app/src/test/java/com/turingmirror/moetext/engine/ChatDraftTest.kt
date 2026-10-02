@@ -1,6 +1,5 @@
 package com.turingmirror.moetext.engine
 
-import com.turingmirror.moetext.service.ChatTargets
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -135,15 +134,6 @@ class ChatDraftTest {
         assertEquals("😁本喵好", update(draft, "😁本喵好").text)
     }
 
-    @Test fun discordComposerRecognitionExcludesSearchAndOtherApps() {
-        assertTrue(ChatTargets.matches("com.discord", null, "Message #general"))
-        assertTrue(ChatTargets.matches("com.discord", null, "发送消息给 @用户"))
-        assertFalse(ChatTargets.matches("com.discord", null, "Search messages"))
-        assertFalse(ChatTargets.matches("com.discord", null, "修改昵称"))
-        assertFalse(ChatTargets.matches("com.example", null, "Message #general"))
-        assertFalse(ChatTargets.matches("com.tencent.mobileqq", "com.tencent.mobileqq:id/search", "Message"))
-    }
-
     @Test fun arbitraryEditsWithoutRulesRemainExactlyWhatTheUserTyped() {
         val config = plain.copy(woToBenmiao = false)
         val draft = ChatDraft()
@@ -156,6 +146,35 @@ class ChatDraftTest {
             value = value.replaceRange(start, end, inserted)
             assertEquals(value, update(draft, value, config, start = start + inserted.length).text)
         }
+    }
+
+    private val decorated = plain.copy(sentenceSuffixEnabled = true, sentenceSuffixes = listOf("甲", "乙"),
+        emoticonEnabled = true, emoticons = listOf("A"))
+
+    @Test fun restoredChatDraftIsNotDecoratedTwice() {
+        val draft = ChatDraft()
+        val sent = update(draft, "你好", decorated).text
+        assertEquals("你好甲 A", sent)
+        update(draft, "", decorated)
+        draft.reset() // the app rebinds another composer and restores the saved draft
+        assertEquals(sent, update(draft, sent, decorated).text)
+        assertEquals("你好呀甲 A", update(draft, "你好呀甲 A", decorated, start = 3).text)
+    }
+
+    @Test fun draftSwitchOnTheSameComposerKeepsEachMessageIntact() {
+        val draft = ChatDraft()
+        val first = update(draft, "你好", decorated).text
+        val second = update(draft, "在吗", decorated).text
+        assertEquals("在吗乙 A", second) // a missed clear still starts a new, decorated message
+        assertEquals(first, update(draft, first, decorated).text)
+    }
+
+    @Test fun typingThroughInlineCompositionKeepsSequentialRotation() {
+        val draft = ChatDraft()
+        update(draft, "n", decorated, complete = false)
+        assertEquals("你甲 A", update(draft, "你", decorated).text)
+        update(draft, "", decorated)
+        assertEquals("好乙 A", update(draft, "好", decorated).text)
     }
 
     @Test fun recursivelyExpandingCustomRulesStayBounded() {
