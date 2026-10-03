@@ -16,8 +16,9 @@ object BidiTools {
 
     fun nickname(base: String, ending: String): String {
         // Reverse code points, preserving surrogate pairs. Intended for short plain-text endings.
+        // Only isolates are used, because QQ rejects nicknames that contain LRO or RLO.
         val reversed = StringBuilder(clean(ending)).reverse().toString()
-        return clean(base) + " \u2067\u202D\u2067" + reversed + "\u2067\u202D\u00A0"
+        return clean(base) + " \u2067" + reversed + "\u2066\u00A0"
     }
 
     fun closure(context: String): String {

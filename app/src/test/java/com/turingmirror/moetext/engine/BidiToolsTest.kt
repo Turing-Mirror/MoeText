@@ -5,7 +5,10 @@ import org.junit.Test
 
 class BidiToolsTest {
     @Test fun nicknameMatchesExample() {
-        assertEquals("千早爱音 \u2067\u202D\u2067～喵\u2067\u202D\u00A0", BidiTools.nickname("千早爱音", "喵～"))
+        assertEquals("千早爱音 \u2067～喵\u2066\u00A0", BidiTools.nickname("千早爱音", "喵～"))
+    }
+    @Test fun nicknameAvoidsOverridesRejectedByQq() {
+        assertTrue(BidiTools.nickname("千早爱音", "喵～").none { it == '\u202D' || it == '\u202E' })
     }
     @Test fun cleansControlsWithoutDeletingTextOrEmoji() {
         assertEquals("喵～😀", BidiTools.clean("\u2067喵～😀\u202D"))
@@ -19,7 +22,7 @@ class BidiToolsTest {
         assertEquals("甲\n乙😀", BidiTools.clean(BidiTools.protect("\u2067", "甲\n乙😀")))
     }
     @Test fun reversalPreservesSurrogatePairs() {
-        assertEquals("A \u2067\u202D\u2067～😀\u2067\u202D\u00A0", BidiTools.nickname("A", "😀～"))
+        assertEquals("A \u2067～😀\u2066\u00A0", BidiTools.nickname("A", "😀～"))
     }
     @Test fun strongerProtectionPreservesMixedTextAndParagraphs() {
         val body = "中文 abc العربية 123\r\n第二段\u2029尾段"
